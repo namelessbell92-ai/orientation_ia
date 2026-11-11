@@ -8,8 +8,12 @@ class ApiService {
   static final String _sessionUserId =
       "eleve-session-${DateTime.now().millisecondsSinceEpoch}";
 
-  // Liste des URLs candidates (port 8000 direct pour adb reverse et local, puis Wi-Fi LAN)
+  // URL de production Cloud Render (24h/24 autonome sans PC)
+  static const String cloudBackendUrl = "https://orientation-ia-w93q.onrender.com/api";
+
+  // Liste des URLs candidates (Cloud Render en priorité, puis fallback local/Wi-Fi)
   static const List<String> _candidateUrls = [
+    cloudBackendUrl,
     "http://127.0.0.1:8000/api",
     "http://10.234.90.134:8000/api",
     "http://localhost:8000/api",
@@ -49,7 +53,7 @@ class ApiService {
       try {
         final res = await http
             .get(Uri.parse("$candidate/health"))
-            .timeout(const Duration(milliseconds: 1500));
+            .timeout(const Duration(milliseconds: 3500));
         if (res.statusCode == 200) {
           _resolvedBaseUrl = candidate;
           return candidate;
