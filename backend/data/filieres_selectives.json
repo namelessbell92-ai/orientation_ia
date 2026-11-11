@@ -1,0 +1,468 @@
+{
+  "filieres": [
+    {
+      "id": "cpge_mpsi_pcsi",
+      "nom": "CPGE Scientifique (MPSI / PCSI / MP2I)",
+      "categorie": "ambition",
+      "pole": "Ingénierie, Tech, IA & Sciences",
+      "etablissement_type": "Lycées publics & privés à classes préparatoires (Grandes Prépas & Proximité)",
+      "taux_acces_parcoursup": 18,
+      "moyenne_generale_attendue": 15.5,
+      "seuils_matieres": {
+        "Mathématiques": 16.0,
+        "Physique-Chimie": 15.5,
+        "Français": 13.5,
+        "Anglais": 14.0,
+        "Philosophie": 13.0
+      },
+      "specialites_requises": ["Mathématiques", "Physique-Chimie"],
+      "specialites_recommandees": ["Mathématiques Expertes", "Informatique / NSI", "Sciences Industrielles / SI"],
+      "riasec_dominant": ["I", "R", "C"],
+      "conditions_acces": [
+        "Spécialité Mathématiques obligatoire en Première et Terminale (option Maths Expertes fortement valorisée)",
+        "Spécialité Physique-Chimie ou NSI (pour MP2I) indispensable en Terminale",
+        "Bulletins réguliers sans chute de notes entre la Première et la Terminale",
+        "Bonnes notes aux épreuves anticipées de Français (écrit et oral > 13/20)"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« En prépa, tout le monde déprime et les profs cherchent à humilier les élèves. »",
+        "realite_terrain": "L'entraide entre élèves y est très forte car les concours sont nationaux. En revanche, le choc initial est réel : passer de 16/20 au lycée à 7/20 au premier DS est normal.",
+        "rythme_hebdo": "32h de cours + 2h de khôlles (interrogations orales individuelles) + 4h de DS le samedi matin + 15 à 20h de travail personnel.",
+        "conseil_survie": "Apprendre son cours le soir même avant de chercher les exercices et dormir au moins 7h30 par nuit."
+      },
+      "plan_b_id": "but_info_geii"
+    },
+    {
+      "id": "ecole_inge_postbac",
+      "nom": "Écoles d'Ingénieurs Post-Bac (INSA, UT, Concours Puissance Alpha / Avenir)",
+      "categorie": "ambition",
+      "pole": "Ingénierie, Tech, IA & Sciences",
+      "etablissement_type": "Grandes Écoles d'Ingénieurs en 5 ans (Post-Bac)",
+      "taux_acces_parcoursup": 24,
+      "moyenne_generale_attendue": 14.8,
+      "seuils_matieres": {
+        "Mathématiques": 15.0,
+        "Physique-Chimie": 14.5,
+        "Anglais": 14.0,
+        "Français": 13.0
+      },
+      "specialites_requises": ["Mathématiques"],
+      "specialites_recommandees": ["Physique-Chimie", "Informatique / NSI", "Sciences Industrielles / SI"],
+      "riasec_dominant": ["I", "R", "E"],
+      "conditions_acces": [
+        "Doublette Mathématiques + 1 spécialité scientifique (Physique-Chimie, NSI ou SI) en Terminale",
+        "Niveau d'Anglais solide (certification B2 exigée pour le diplôme d'ingénieur)",
+        "Réussite aux épreuves écrites (QCM scientifiques) et à l'entretien de motivation pour les écoles sur concours"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« Une prépa intégrée, c'est les vacances par rapport à une CPGE classique. »",
+        "realite_terrain": "Il n'y a pas de concours au bout de 2 ans, mais le contrôle continu est éliminatoire : entre 10% et 18% des élèves ne passent pas en 2e année faute de travail régulier.",
+        "rythme_hebdo": "30h de cours/TP/projets + 10 à 12h de travail personnel et projets de groupe.",
+        "conseil_survie": "Ne pas négliger les matières fondamentales (analyse, algèbre, mécanique) au profit de la seule vie associative."
+      },
+      "plan_b_id": "but_info_geii"
+    },
+    {
+      "id": "but_info_geii",
+      "nom": "BUT Informatique / Science des Données / GEII (Plan B Sécurisé & Passerelles Ingé)",
+      "categorie": "realiste",
+      "pole": "Ingénierie, Tech, IA & Sciences",
+      "etablissement_type": "IUT (Instituts Universitaires de Technologie - Bac+3 grade Licence)",
+      "taux_acces_parcoursup": 48,
+      "moyenne_generale_attendue": 12.5,
+      "seuils_matieres": {
+        "Mathématiques": 12.5,
+        "Informatique / NSI": 13.0,
+        "Physique-Chimie": 12.0,
+        "Anglais": 12.0
+      },
+      "specialites_requises": ["Mathématiques"],
+      "specialites_recommandees": ["Informatique / NSI", "Physique-Chimie", "Sciences Industrielles / SI", "STI2D"],
+      "riasec_dominant": ["R", "I", "C"],
+      "conditions_acces": [
+        "Accessible aux bacs généraux (avec Maths ou NSI) et aux bacs technologiques (STI2D / STMG SIG)",
+        "Forte valorisation des projets concrets et de l'assiduité (aucune absence injustifiée sur les bulletins)",
+        "Permet d'intégrer une école d'ingénieurs sur dossier/passerelle (top 20% de promo) ou d'entrer sur le marché du travail à Bac+3"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« En IUT, on fait uniquement de la pratique sans mathématiques. »",
+        "realite_terrain": "Si tu vises une passerelle vers une école d'ingénieurs après ton BUT, ton classement en Mathématiques et Algorithmique sera le critère numéro 1 des jurys d'admission.",
+        "rythme_hebdo": "33h de cours, TD et TP encadrés + SAÉ (Situations d'Apprentissage et d'Évaluation en mode projet) + stages/alternance.",
+        "conseil_survie": "Viser le premier quart de la promotion dès le Semestre 1 pour garder toutes les portes d'écoles d'ingénieurs ouvertes."
+      },
+      "plan_b_id": null
+    },
+    {
+      "id": "pass_las_medecine",
+      "nom": "PASS / L.AS (Médecine, Maïeutique, Odontologie, Pharmacie, Kiné)",
+      "categorie": "ambition",
+      "pole": "Médecine, Santé & Biologie",
+      "etablissement_type": "Facultés de Médecine & Universités (Sélection MMOPK)",
+      "taux_acces_parcoursup": 22,
+      "moyenne_generale_attendue": 15.0,
+      "seuils_matieres": {
+        "Physique-Chimie": 15.5,
+        "SVT / Biologie": 15.5,
+        "Mathématiques": 14.5,
+        "Français": 13.0
+      },
+      "specialites_requises": ["Physique-Chimie", "SVT / Biologie"],
+      "specialites_recommandees": ["Mathématiques", "Mathématiques Complémentaires"],
+      "riasec_dominant": ["I", "S", "C"],
+      "conditions_acces": [
+        "En Terminale : Physique-Chimie + SVT (avec option Maths Complémentaires) OU Physique-Chimie + Maths",
+        "Capacité de mémorisation massive et autonomie complète dès la rentrée universitaire",
+        "La Physique-Chimie et la Biochimie sont les matières les plus discriminantes aux examens classants de 1re année"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« En médecine, il suffit d'apprendre par cœur de la biologie sans faire de maths ni de physique. »",
+        "realite_terrain": "La biophysique, la chimie organique et les biostatistiques éliminent chaque année les étudiants qui ont abandonné les maths et la physique au lycée.",
+        "rythme_hebdo": "15 à 20h de cours magistraux + 35 à 45h de travail personnel et d'entraînement aux QCM (Tutorat).",
+        "conseil_survie": "Tester sa méthode de travail dès la Terminale et s'inscrire au Tutorat universitaire gratuit dès le premier jour."
+      },
+      "plan_b_id": "but_genie_bio_ifsi"
+    },
+    {
+      "id": "but_genie_bio_ifsi",
+      "nom": "BUT Génie Biologique / Licence Sciences de la Vie (L.AS) / IFSI (Plan B Santé)",
+      "categorie": "realiste",
+      "pole": "Médecine, Santé & Biologie",
+      "etablissement_type": "IUT Biologie, Universités (Licences Accès Santé) & Instituts Paramédicaux",
+      "taux_acces_parcoursup": 45,
+      "moyenne_generale_attendue": 12.5,
+      "seuils_matieres": {
+        "SVT / Biologie": 13.0,
+        "Physique-Chimie": 12.0,
+        "Mathématiques": 11.5,
+        "Français": 12.0
+      },
+      "specialites_requises": ["SVT / Biologie"],
+      "specialites_recommandees": ["Physique-Chimie", "Mathématiques", "STL", "ST2S"],
+      "riasec_dominant": ["S", "I", "R"],
+      "conditions_acces": [
+        "Spécialité SVT ou Biotechnologies (STL) / Sciences médico-sociales (ST2S) avec un bon dossier",
+        "En L.AS (Licence Accès Santé) : permet de valider une vraie Licence tout en tentant l'accès en 2e année de Médecine/Pharmacie/Kiné",
+        "Valorisation des stages d'observation ou de l'engagement citoyen (secourisme PSC1, bénévolat)"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« Si je rate PASS, mes études de santé sont définitivement finies. »",
+        "realite_terrain": "La voie L.AS (Licence Accès Santé) offre jusqu'à 2 tentatives pour intégrer Médecine/Pharma/Kiné tout en sécurisant un diplôme universitaire reconnu.",
+        "rythme_hebdo": "25 à 30h de cours et TP + 15h de travail personnel (plus encadré en BUT et IFSI qu'en faculté).",
+        "conseil_survie": "Valider sa majeure de Licence avec au moins 14/20 avant de sur-investir la mineure Santé."
+      },
+      "plan_b_id": null
+    },
+    {
+      "id": "cpge_ecg_commerce",
+      "nom": "CPGE Économique & Commerciale (ECG) / Grands Bachelors & Dauphine",
+      "categorie": "ambition",
+      "pole": "Management, Finance, Économie & Commerce",
+      "etablissement_type": "Classes Préparatoires ECG & Universités Sélectives (Paris-Dauphine)",
+      "taux_acces_parcoursup": 21,
+      "moyenne_generale_attendue": 14.8,
+      "seuils_matieres": {
+        "Mathématiques": 15.0,
+        "SES / Économie": 14.5,
+        "Histoire-Géographie": 14.5,
+        "Français": 14.0,
+        "Anglais": 14.5,
+        "Philosophie": 13.5
+      },
+      "specialites_requises": ["Mathématiques"],
+      "specialites_recommandees": ["SES / Économie", "Histoire-Géographie"],
+      "riasec_dominant": ["E", "I", "C"],
+      "conditions_acces": [
+        "Spécialité Mathématiques (ou a minima Option Maths Complémentaires avec d'excellentes notes) indispensable",
+        "Profil pluridisciplinaire équilibré : les langues (LV1 + LV2) et la Culture Générale (Philo/Français) pèsent autant que les Maths aux concours BCE/Ecricome",
+        "Appréciations des professeurs soulignant la participation orale et la rigueur rédactionnelle"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« En prépa commerce, on fait du marketing et de la vente. »",
+        "realite_terrain": "En CPGE ECG, on ne fait ni marketing ni comptabilité : c'est une formation d'excellence en Mathématiques (probabilités, algèbre), Géopolitique/Économie, Philosophie et Langues.",
+        "rythme_hebdo": "28h de cours + 2h de khôlles + 4h de dissertation/maths le samedi + 15h de travail personnel.",
+        "conseil_survie": "Travailler toutes les matières à égalité : aux concours HEC/ESSEC/EDHEC, il n'y a aucune matière « secondaire »."
+      },
+      "plan_b_id": "but_gea_eco_gestion"
+    },
+    {
+      "id": "but_gea_eco_gestion",
+      "nom": "BUT GEA / Techniques de Commercialisation / Licence Économie-Gestion (Plan B)",
+      "categorie": "realiste",
+      "pole": "Management, Finance, Économie & Commerce",
+      "etablissement_type": "IUT (BUT GEA / TC) & Facultés d'Économie-Gestion (Admissions parallèles Grandes Écoles)",
+      "taux_acces_parcoursup": 42,
+      "moyenne_generale_attendue": 12.2,
+      "seuils_matieres": {
+        "SES / Économie": 12.5,
+        "Mathématiques": 12.0,
+        "Anglais": 12.5,
+        "Français": 12.0
+      },
+      "specialites_requises": [],
+      "specialites_recommandees": ["SES / Économie", "Mathématiques", "Histoire-Géographie", "STMG"],
+      "riasec_dominant": ["E", "C", "S"],
+      "conditions_acces": [
+        "Accessible aux bacs généraux (SES, HGGSP, Maths) et aux bacs technologiques STMG avec un bon dossier",
+        "Offre la voie royale des « Admissions sur Titre » (concours AST1/AST2 : Tremplin, Passerelle, Skema, Audencia, EDHEC, EM Lyon) après un Bac+2 ou Bac+3",
+        "Possibilité d'effectuer la 2e et 3e année en alternance (études gratuites et rémunérées)"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« Pour entrer dans le Top 10 des écoles de commerce, il faut obligatoirement passer par une prépa. »",
+        "realite_terrain": "Aujourd'hui, plus de 50% des étudiants en Master Grande École entrent via les admissions parallèles (après un BUT GEA/TC ou une Licence Éco-Gestion) en passant le TAGE MAGE et le TOEIC.",
+        "rythme_hebdo": "30h de cours/TD encadrés + projets d'entreprise et stages dès la 1re année.",
+        "conseil_survie": "Préparer son score TOEIC (> 850/990) et soigner ses moyennes de semestres pour présenter les concours AST."
+      },
+      "plan_b_id": null
+    },
+    {
+      "id": "sciences_po_bl_droit",
+      "nom": "Sciences Po (IEP) / CPGE Lettres & Sciences Sociales (B/L - A/L) / Double Licence Droit",
+      "categorie": "ambition",
+      "pole": "Droit, Sciences Politiques & Humanités",
+      "etablissement_type": "Instituts d'Études Politiques (Sciences Po), CPGE Littéraires & Doubles Licences Sélectives",
+      "taux_acces_parcoursup": 14,
+      "moyenne_generale_attendue": 15.5,
+      "seuils_matieres": {
+        "Histoire-Géographie": 16.0,
+        "Français": 15.5,
+        "Philosophie": 15.0,
+        "SES / Économie": 15.0,
+        "Anglais": 15.5
+      },
+      "specialites_requises": ["Histoire-Géographie"],
+      "specialites_recommandees": ["SES / Économie", "Français", "Philosophie", "Anglais", "Mathématiques"],
+      "riasec_dominant": ["S", "E", "A"],
+      "conditions_acces": [
+        "Excellence rédactionnelle et culture historique/géopolitique approfondie",
+        "Pour la CPGE B/L (Lettres et Sciences Sociales) : la spécialité Mathématiques en Terminale est obligatoire",
+        "Pour le réseau Sciences Po : préparation spécifique aux épreuves écrites (Questions Contemporaines, Histoire, Langue vivante)"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« Avoir 16 de moyenne au lycée suffit pour réussir le concours des IEP (Sciences Po). »",
+        "realite_terrain": "Les épreuves des IEP évaluent la capacité à problématiser en 3h sur des sujets transversaux que le programme du bac ne couvre qu'en surface.",
+        "rythme_hebdo": "Lecture quotidienne de la presse internationale + 25 à 30h de cours + 15h de fichage et dissertations.",
+        "conseil_survie": "S'entraîner à rédiger des introductions complètes (accroche, définitions, problématique, plan en 2 ou 3 parties) en 25 minutes chrono."
+      },
+      "plan_b_id": "licence_droit_but_cj"
+    },
+    {
+      "id": "licence_droit_but_cj",
+      "nom": "Licence de Droit / Science Politique / BUT Carrières Juridiques (Plan B Sécurisé)",
+      "categorie": "realiste",
+      "pole": "Droit, Sciences Politiques & Humanités",
+      "etablissement_type": "Facultés de Droit & IUT Carrières Juridiques / Info-Com",
+      "taux_acces_parcoursup": 58,
+      "moyenne_generale_attendue": 12.0,
+      "seuils_matieres": {
+        "Français": 12.5,
+        "Histoire-Géographie": 12.5,
+        "Philosophie": 12.0,
+        "Anglais": 12.0
+      },
+      "specialites_requises": [],
+      "specialites_recommandees": ["Histoire-Géographie", "SES / Économie", "Français", "Philosophie"],
+      "riasec_dominant": ["C", "E", "S"],
+      "conditions_acces": [
+        "Qualités d'expression écrite et de raisonnement logique (le syllogisme juridique s'apparente à une démonstration)",
+        "En Licence de Droit : taux d'accès élevé sur Parcoursup, mais la sélection réelle s'opère aux examens de fin de 1re année et à l'entrée en Master (MonMaster)",
+        "En BUT Carrières Juridiques : encadrement renforcé en petits groupes et insertion rapide ou poursuite en Licence 3 / École"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« La fac de Droit n'est pas sélective sur Parcoursup, donc c'est facile. »",
+        "realite_terrain": "Seulement 40% des inscrits en L1 Droit valident leur 1re année du premier coup. La méthodologie du cas pratique et du commentaire d'arrêt ne pardonne pas l'improvisation.",
+        "rythme_hebdo": "20h de cours magistraux et TD obligatoires + 15 à 20h de préparation des fiches d'arrêt et TD.",
+        "conseil_survie": "Préparer intégralement chaque séance de Travaux Dirigés (TD) : la note de contrôle continu en TD sauve le semestre."
+      },
+      "plan_b_id": null
+    },
+    {
+      "id": "ensa_archi_gobelins",
+      "nom": "Écoles d'Architecture (ENSA) / Grandes Écoles de Design & Animation (ENSAD, Gobelins)",
+      "categorie": "ambition",
+      "pole": "Architecture, Création, Design & Médias",
+      "etablissement_type": "Écoles Nationales Supérieures d'Architecture (ENSA) & Grandes Écoles d'Art/Design",
+      "taux_acces_parcoursup": 16,
+      "moyenne_generale_attendue": 14.2,
+      "seuils_matieres": {
+        "Art": 15.0,
+        "Mathématiques": 13.5,
+        "Français": 13.5,
+        "Histoire-Géographie": 13.5,
+        "Anglais": 13.0
+      },
+      "specialites_requises": [],
+      "specialites_recommandees": ["Art", "Mathématiques", "Physique-Chimie", "Histoire-Géographie", "STD2A"],
+      "riasec_dominant": ["A", "R", "I"],
+      "conditions_acces": [
+        "Pour les ENSA (Architecture) : un profil mixte (Sciences/Maths + Culture/Arts) est particulièrement recherché par les jurys",
+        "Pour les grandes écoles de Design/Animation : constitution d'un book/portfolio personnel démontrant une démarche créative singulière (et non de la simple copie)",
+        "Entretien oral décisif portant sur la curiosité culturelle, l'espace et l'argumentation du projet"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« Pour entrer en école d'architecture, il suffit de savoir bien dessiner. »",
+        "realite_terrain": "Les ENSA recrutent avant tout des têtes bien faites capables de gérer la résistance des matériaux, l'histoire urbaine, la géométrie dans l'espace et des charrettes de projet intenses.",
+        "rythme_hebdo": "30h d'atelier de projet et cours théoriques + 15 à 20h de maquettes, DAO/CAO et rendus.",
+        "conseil_survie": "Construire un carnet de croquis d'observation du réel (bâtiments, volumes, perspectives) dès la Première."
+      },
+      "plan_b_id": "dnmade_but_mmi"
+    },
+    {
+      "id": "dnmade_but_mmi",
+      "nom": "DN MADE (Design Graphique, Espace, Numérique) / BUT MMI (Plan B Créatif & Digital)",
+      "categorie": "realiste",
+      "pole": "Architecture, Création, Design & Médias",
+      "etablissement_type": "Lycées Publics (DN MADE Bac+3) & IUT Métiers du Multimédia et de l'Internet (BUT MMI)",
+      "taux_acces_parcoursup": 38,
+      "moyenne_generale_attendue": 12.2,
+      "seuils_matieres": {
+        "Art": 13.5,
+        "Français": 12.0,
+        "Anglais": 12.5,
+        "Informatique / NSI": 12.5
+      },
+      "specialites_requises": [],
+      "specialites_recommandees": ["Art", "Informatique / NSI", "Français", "STD2A", "STI2D"],
+      "riasec_dominant": ["A", "E", "I"],
+      "conditions_acces": [
+        "En DN MADE : sélection sur dossier scolaire + lettre de motivation + carnet de recherches plastiques",
+        "En BUT MMI : formation hybride très prisée alliant UI/UX Design, Développement Web/Mobile et Communication digitale",
+        "Permet de poursuivre en Master / Grande École (Gobelins, ENSCI, DSAA) à Bac+3"
+      ],
+      "casseur_de_mythes": {
+        "mythe": "« Les métiers créatifs sont tous bouchés et remplacés par l'IA. »",
+        "realite_terrain": "Ce sont les exécutants purement techniques qui sont menacés. Les profils hybrides (Design UI/UX + maîtrise des outils IA + code front-end formés en BUT MMI ou DN MADE Numérique) sont très recherchés.",
+        "rythme_hebdo": "32h d'ateliers pratiques, projets clients réels et cours + constitution d'un portfolio professionnel.",
+        "conseil_survie": "Publier ses projets concrets (maquettes Figma, sites web, courts-métrages) dès la 1re année d'études."
+      },
+      "plan_b_id": null
+    }
+  ],
+  "decodeur_talents": {
+    "Gaming compétitif / Esport / Stratégie": {
+      "competence_academique": "Analyse systémique, prise de décision sous contrainte de temps et optimisation (Theorycrafting)",
+      "competence_pro": "Résolution de problèmes complexes, gestion du stress et coordination d'équipe à distance",
+      "riasec_boost": {"I": 2.0, "E": 1.5, "C": 1.0},
+      "argument_parcoursup": "« La pratique compétitive m'a appris à analyser des métriques de performance (replays, statistiques), à travailler la régularité et à coordonner une équipe sous pression. »"
+    },
+    "Production musicale / Rap / Beatmaking / Écriture": {
+      "competence_academique": "Maîtrise rythmique et stylistique, ingénierie sonore (MAO) et persévérance créative",
+      "competence_pro": "Conduite d'un projet créatif de A à Z (conception, arrangement, mixage, diffusion)",
+      "riasec_boost": {"A": 2.5, "R": 1.0, "E": 1.0},
+      "argument_parcoursup": "« La composition et la MAO m'ont formé à la rigueur technique des logiciels audio ainsi qu'à la précision de l'écriture et de la diction. »"
+    },
+    "Sport en club / Arts martiaux / Musculation": {
+      "competence_academique": "Discipline quotidienne, résistance à l'effort long et compréhension de la physiologie",
+      "competence_pro": "Résilience face à l'échec, respect d'un plan d'entraînement progressif et esprit de corps",
+      "riasec_boost": {"R": 2.0, "E": 1.5, "S": 1.0},
+      "argument_parcoursup": "« Mon engagement sportif m'a inculqué la valeur de l'effort régulier, la gestion de la fatigue et la capacité à performer lors d'échéances décisives (compétitions/concours). »"
+    },
+    "Montage vidéo / Création de contenu (YouTube, TikTok)": {
+      "competence_academique": "Synthèse de l'information, narration visuelle (storytelling) et maîtrise d'outils numériques",
+      "competence_pro": "Communication d'impact, analyse d'audience (analytics) et production multimédia",
+      "riasec_boost": {"A": 2.0, "E": 2.0, "I": 0.5},
+      "argument_parcoursup": "« Concevoir et monter des formats vidéo m'a appris à vulgariser un sujet complexe, structurer un script clair et maîtriser les suites logicielles de création. »"
+    },
+    "Programmation / Mods / Serveurs / Cybersécurité": {
+      "competence_academique": "Algorithmique, logique formelle, lecture de documentation technique en anglais",
+      "competence_pro": "Développement logiciel, débogage méthodique et administration d'infrastructures",
+      "riasec_boost": {"I": 2.5, "R": 2.0, "C": 1.5},
+      "argument_parcoursup": "« Développer des scripts et administrer des serveurs en autodidacte a développé ma capacité à résoudre des bugs par moi-même et à lire la documentation en anglais. »"
+    },
+    "Bricolage / Électronique / Mécanique / Impression 3D": {
+      "competence_academique": "Géométrie dans l'espace, physique appliquée et compréhension des systèmes matériels",
+      "competence_pro": "Prototypage rapide, diagnostic de pannes et ingénierie pragmatique",
+      "riasec_boost": {"R": 2.5, "I": 1.5, "A": 0.5},
+      "argument_parcoursup": "« Concevoir, réparer ou modéliser des objets en 3D m'a permis de relier les concepts théoriques de physique et de géométrie à la réalité concrète des matériaux. »"
+    },
+    "Débat / Éloquence / Géopolitique / Actualités": {
+      "competence_academique": "Dialectique, structuration de l'argumentation et culture générale historique",
+      "competence_pro": "Prise de parole en public, négociation, veille stratégique et esprit critique",
+      "riasec_boost": {"E": 2.0, "S": 1.5, "I": 1.5},
+      "argument_parcoursup": "« Mon intérêt pour le débat et l'actualité géopolitique nourrit ma capacité à confronter des points de vue contradictoires et à défendre une thèse structurée à l'oral. »"
+    },
+    "Manga / Dessin / Design / Modélisation 3D": {
+      "competence_academique": "Sens de l'observation, maîtrise des proportions/perspectives et culture visuelle",
+      "competence_pro": "Direction artistique, conception graphique et souci du détail esthétique",
+      "riasec_boost": {"A": 2.5, "R": 1.0, "C": 0.5},
+      "argument_parcoursup": "« La pratique régulière du dessin et de la composition visuelle a forgé ma patience, mon sens de l'observation spatiale et ma rigueur dans l'exécution. »"
+    },
+    "Achat-Revente / Sneakers / E-commerce / Finance": {
+      "competence_academique": "Calcul de marges, analyse de l'offre et de la demande et gestion budgétaire",
+      "competence_pro": "Sens commercial, négociation, détection d'opportunités de marché et entrepreneuriat",
+      "riasec_boost": {"E": 2.5, "C": 1.5, "I": 0.5},
+      "argument_parcoursup": "« Gérer une activité d'achat-revente m'a initié concrètement aux mécanismes de fixation des prix, à la gestion de trésorerie et à la relation client. »"
+    },
+    "Aide aux autres / Tutorat / Animation (BAFA) / Bénévolat": {
+      "competence_academique": "Pédagogie (reformulation claire d'une notion), écoute active et maturité civique",
+      "competence_pro": "Management bienveillant, médiation, gestion de groupe et responsabilité éthique",
+      "riasec_boost": {"S": 2.5, "E": 1.0, "A": 0.5},
+      "argument_parcoursup": "« Accompagner des plus jeunes ou m'engager dans le bénévolat m'a appris à adapter mon discours, à faire preuve de patience et à assumer des responsabilités concrètes. »"
+    }
+  },
+  "matrice_specialites": {
+    "Mathématiques": {
+      "portes_ouvertes": [
+        "CPGE Scientifiques (MPSI, PCSI, MP2I, BCPST)",
+        "Écoles d'Ingénieurs Post-Bac (INSA, UT, Concours)",
+        "CPGE Économique & Commerciale (ECG) & Dauphine",
+        "PASS / L.AS (Médecine, Pharmacie, Odontologie)",
+        "BUT Informatique, Science des Données, GEII, GEA"
+      ],
+      "risque_si_abandon": "Ferme 95% des filières scientifiques, d'ingénierie, d'informatique sélective et les prépas économiques (ECG)."
+    },
+    "Physique-Chimie": {
+      "portes_ouvertes": [
+        "CPGE MPSI / PCSI / BCPST",
+        "PASS / L.AS (Médecine - matière ultra-discriminante)",
+        "Écoles d'Ingénieurs généralistes, Aéronautique, Énergie, Chimie",
+        "BUT Mesures Physiques, Génie Chimique, Génie Civil"
+      ],
+      "risque_si_abandon": "Ferme l'accès aux CPGE MPSI/PCSI/BCPST et pénalise lourdement la réussite en 1re année de Médecine (PASS)."
+    },
+    "Informatique / NSI": {
+      "portes_ouvertes": [
+        "CPGE MP2I (Maths, Physique, Ingénierie et Informatique)",
+        "BUT Informatique & Écoles d'Ingénieurs spécialisées IA / Cybersécurité",
+        "Licences Informatique & Doubles Licences Maths-Info"
+      ],
+      "risque_si_abandon": "Pas bloquant si tu gardes Mathématiques + Physique-Chimie, mais indispensable de conserver Mathématiques avec NSI."
+    },
+    "SVT / Biologie": {
+      "portes_ouvertes": [
+        "PASS / L.AS (Médecine, Santé) & Formations Paramédicales",
+        "CPGE BCPST (Vétérinaire, Agronomie, Géosciences, Biotechnologies)",
+        "BUT Génie Biologique & Licences Sciences de la Vie"
+      ],
+      "risque_si_abandon": "Ferme la CPGE BCPST (Véto/Agro). En revanche, pour PASS (Médecine), la Physique-Chimie est encore plus indispensable que la SVT."
+    },
+    "SES / Économie": {
+      "portes_ouvertes": [
+        "CPGE ECG (couplée impérativement avec Mathématiques) & CPGE B/L",
+        "Sciences Po (IEP), Écoles de Commerce Post-Bac, Licence Éco-Gestion",
+        "Facultés de Droit, IUT GEA & Techniques de Commercialisation"
+      ],
+      "risque_si_abandon": "Attention : SES sans Mathématiques (spécialité ou option Maths Complémentaires) ferme les prépas ECG et les Licences d'Économie."
+    },
+    "Histoire-Géographie": {
+      "portes_ouvertes": [
+        "Sciences Po (IEP Paris & Province) & Licences Science Politique",
+        "Facultés de Droit, Écoles de Journalisme, CPGE ECG (voie HGG) & A/L - B/L"
+      ],
+      "risque_si_abandon": "Recommandée pour Droit et Sciences Po, mais peut être compensée par d'excellentes notes au tronc commun d'Histoire-Géo."
+    },
+    "Français": {
+      "portes_ouvertes": [
+        "CPGE Littéraires (Hypokhâgne A/L & B/L), CELSA, Écoles de Journalisme",
+        "Licences de Droit, Lettres, Philosophie, Communication"
+      ],
+      "risque_si_abandon": "Spécialité HLP valorisée pour les filières littéraires et juridiques."
+    },
+    "Art": {
+      "portes_ouvertes": [
+        "Écoles d'Architecture (ENSA - idéalement couplée avec Maths ou Physique)",
+        "DN MADE, Écoles Supérieures d'Art & Design (ENSAD, Beaux-Arts, Gobelins)"
+      ],
+      "risque_si_abandon": "Pour Architecture (ENSA), garder les Mathématiques est souvent plus stratégique que la seule spécialité Arts si tu as déjà un portfolio personnel."
+    }
+  }
+}

@@ -12,6 +12,16 @@
 .swiftpm/
 migrate_working_dir/
 
+# Python
+venv/
+.venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+*.backup.json
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -43,3 +53,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Open Data Pipeline (raw downloads ignored, processed schemas kept)
+data/raw/
+# Base Open Data MESR conservée pour déploiement Cloud
+scratch/
+*.sqlite-journal
+*.sqlite-wal
+*.db-journal
+
+/orientation_data.sqlite

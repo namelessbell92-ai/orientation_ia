@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: orientation-ia-api
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health

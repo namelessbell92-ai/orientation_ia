@@ -1,0 +1,15 @@
+.git
+.gitignore
+build
+android
+ios
+linux
+macos
+windows
+web
+test
+scratch
+*.bat
+*.log
+venv
+backend/venv
