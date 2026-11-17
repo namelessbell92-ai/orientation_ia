@@ -225,16 +225,16 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
 
   Future<void> _pickFile() async {
     try {
-      final res = await FilePicker.pickFiles(
+      final pickedFiles = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
-        withData: true,
       );
-      if (res != null && res.files.isNotEmpty) {
-        final f = res.files.first;
+      if (pickedFiles.isNotEmpty) {
+        final f = pickedFiles.first;
+        final bytes = await f.readAsBytes();
         setState(() {
           _attachedFileName = f.name;
-          _attachedFileBytes = f.bytes;
+          _attachedFileBytes = bytes;
         });
       }
     } catch (e) {
