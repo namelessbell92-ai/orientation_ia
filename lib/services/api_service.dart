@@ -290,7 +290,7 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
+      const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
       for (final m in models) {
         try {
           final url = Uri.parse(
@@ -548,7 +548,7 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
+      const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
       for (final m in models) {
         try {
           final url = Uri.parse(
@@ -779,7 +779,7 @@ class ApiService {
     List<Map<String, String>> history = const [],
     Map<String, dynamic>? studentProfile,
   }) async {
-    const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
+    const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
     final sysPrompt =
         "Tu es Nova, le mentor d'orientation officiel pour lycéens. "
         "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
