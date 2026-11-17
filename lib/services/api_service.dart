@@ -38,29 +38,39 @@ class ApiService {
 
   static Future<String> getBaseUrl() async {
     if (_resolvedBaseUrl != null) return _resolvedBaseUrl!;
+
+    // 1. Si environnement Web local
     final dynamicWebHost = Uri.base.host;
     final dynamicWebPort = Uri.base.hasPort ? Uri.base.port : null;
-    final List<String> list = [
-      if (dynamicWebHost.isNotEmpty && dynamicWebPort != null)
-        "http://$dynamicWebHost:$dynamicWebPort/api",
-      if (dynamicWebHost.isNotEmpty &&
-          dynamicWebHost != 'localhost' &&
-          dynamicWebHost != '127.0.0.1')
-        "http://$dynamicWebHost:8000/api",
-      ..._candidateUrls,
-    ];
-    for (final candidate in list) {
+    if (dynamicWebHost.isNotEmpty &&
+        dynamicWebPort != null &&
+        (dynamicWebHost == 'localhost' || dynamicWebHost == '127.0.0.1')) {
+      final localUrl = "http://$dynamicWebHost:8000/api";
       try {
         final res = await http
-            .get(Uri.parse("$candidate/health"))
-            .timeout(const Duration(milliseconds: 3500));
+            .get(Uri.parse("$localUrl/health"))
+            .timeout(const Duration(milliseconds: 600));
         if (res.statusCode == 200) {
-          _resolvedBaseUrl = candidate;
-          return candidate;
+          _resolvedBaseUrl = localUrl;
+          return localUrl;
         }
       } catch (_) {}
     }
-    return _candidateUrls.first;
+
+    // 2. Si adb reverse actif en dev local (127.0.0.1:8000 accessible immédiatement)
+    try {
+      final res = await http
+          .get(Uri.parse("http://127.0.0.1:8000/api/health"))
+          .timeout(const Duration(milliseconds: 400));
+      if (res.statusCode == 200) {
+        _resolvedBaseUrl = "http://127.0.0.1:8000/api";
+        return _resolvedBaseUrl!;
+      }
+    } catch (_) {}
+
+    // 3. Par défaut et en priorité absolue sur smartphone 4G/Wi-Fi : Cloud Render 24h/24
+    _resolvedBaseUrl = cloudBackendUrl;
+    return cloudBackendUrl;
   }
 
   /// Récupère le référentiel stratégique complet
@@ -280,7 +290,7 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-3.5-flash"];
+      const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
       for (final m in models) {
         try {
           final url = Uri.parse(
@@ -535,7 +545,7 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-3.5-flash"];
+      const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
       for (final m in models) {
         try {
           final url = Uri.parse(
@@ -692,13 +702,65 @@ class ApiService {
   static const String _geminiCloudApiKey =
       "AQ.Ab8RN6KjXpmknedkOcQVKguc6OxFuB9t7QK8M5oQoh3YFynnvw";
 
+  /// Réponses expertes directes et immédiates pour Nova (secours autonome 100% hors-ligne)
+  static String _buildNovaLocalFallback(
+    String message,
+    Map<String, dynamic>? studentProfile,
+  ) {
+    final msgLow = message.toLowerCase();
+    final prof = studentProfile ?? {};
+    final classe = prof["classe_actuelle"] ?? "au lycée";
+
+    if (msgLow.contains("math") ||
+        msgLow.contains("calcul") ||
+        msgLow.contains("note") ||
+        msgLow.contains("progresser") ||
+        msgLow.contains("remédiation") ||
+        msgLow.contains("remediation")) {
+      return "Pour faire grimper ta moyenne en maths, la clé n'est pas de refaire 50 fois les mêmes exercices faciles, mais de cibler les automatismes de calcul et les démonstrations de cours.\n\nConsacre 3 sessions de 35 minutes par semaine exclusivement aux exercices types du bac ou de concours. Rédige chaque étape au propre comme si tu étais le jour de l'épreuve.";
+    } else if (msgLow.contains("parcoursup") ||
+        msgLow.contains("dossier") ||
+        msgLow.contains("commission") ||
+        msgLow.contains("selection") ||
+        msgLow.contains("sélecti")) {
+      return "Pour les commissions Parcoursup, deux éléments pèsent lourdement en dehors des notes : la progression entre le 1er et le 2e trimestre, et l'adéquation de tes spécialités avec la filière visée.\n\nSi ton lycée applique une notation exigeante, n'hésite pas à le faire valoir via la fiche Avenir et ta lettre de motivation.";
+    } else if (msgLow.contains("prépa") ||
+        msgLow.contains("prepa") ||
+        msgLow.contains("mpsi") ||
+        msgLow.contains("pcsi") ||
+        msgLow.contains("ecg") ||
+        msgLow.contains("bcpst") ||
+        msgLow.contains("concours")) {
+      return "Viser une classe préparatoire est une excellente ambition qui structure ta méthode pour toute ta carrière. Les prépas recherchent avant tout de la régularité et une capacité à surmonter les moments de doute.\n\nAssure-toi de consolider tes bases dès maintenant et prévois toujours un plan B sécurisé (BUT ou licence sélective).";
+    } else if (msgLow.contains("lycee") ||
+        msgLow.contains("lycée") ||
+        msgLow.contains("ival") ||
+        msgLow.contains("etablissement")) {
+      return "Le lycée d'origine est en effet scruté par les meilleures formations : un 14 dans un établissement réputé pour sa sévérité vaut souvent un 16 ou 17 dans un lycée moyen.\n\nC'est précisément pour cela que l'application étalonne ton dossier via les indicateurs officiels IVAL.";
+    } else if (msgLow.contains("medecine") ||
+        msgLow.contains("médecine") ||
+        msgLow.contains("pass") ||
+        msgLow.contains("las") ||
+        msgLow.contains("santé") ||
+        msgLow.contains("sante")) {
+      return "L'accès aux études de santé (PASS ou LAS) exige une immense capacité de travail en autonomie et une mémorisation rapide. En Première et Terminale, privilégie les spécialités scientifiques (SVT, Physique-Chimie, Maths).\n\nEn PASS, le rythme est très soutenu dès la première semaine : travailler la régularité dès maintenant est ton meilleur atout.";
+    } else if (msgLow.contains("ingénieur") ||
+        msgLow.contains("ingenieur") ||
+        msgLow.contains("école") ||
+        msgLow.contains("ecole")) {
+      return "Pour intégrer une école d'ingénieurs, plusieurs voies s'offrent à toi : les prépas classiques (CPGE), les écoles post-bac avec prépa intégrée (INSA, UT, Polytech via Geipi), ou les admissions parallèles après un BUT.\n\nLe choix dépend de ton profil : si tu as besoin de concret, le BUT ou la prépa intégrée sont d'excellentes options.";
+    } else {
+      return "Je prends bien en compte ta question par rapport à ta situation $classe.\n\nPour construire une trajectoire solide, concentre-toi d'abord sur la régularité de tes notes et l'alignement de tes spécialités avec tes objectifs. Quelle est la filière ou le métier qui t'attire le plus en ce moment ?";
+    }
+  }
+
   /// Appel direct à Google Gemini Cloud depuis le smartphone (100% autonome sans PC)
   static Future<String> _askGeminiDirect({
     required String message,
     List<Map<String, String>> history = const [],
     Map<String, dynamic>? studentProfile,
   }) async {
-    const models = ["gemini-3.5-flash"];
+    const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
     final sysPrompt =
         "Tu es Nova, le mentor d'orientation officiel pour lycéens. "
         "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
@@ -750,7 +812,7 @@ class ApiService {
               headers: {"Content-Type": "application/json"},
               body: body,
             )
-            .timeout(const Duration(seconds: 12));
+            .timeout(const Duration(seconds: 15));
 
         if (res.statusCode == 200) {
           final data =
@@ -769,7 +831,7 @@ class ApiService {
         }
       } catch (_) {}
     }
-    return "Connexion avec Nova impossible. Vérifie ta connexion Internet (4G ou Wi-Fi).";
+    return _buildNovaLocalFallback(message, studentProfile);
   }
 
   /// Envoie un message au mentor IA Nova avec historique et contexte de l'élève
@@ -784,21 +846,24 @@ class ApiService {
       final body = jsonEncode({
         "message": message,
         "conversation_history": history,
-        "student_profile": ?studentProfile,
+        "student_profile": studentProfile,
       });
+      // Délai adapté au réveil à froid de Render (cold-start 20-30s sans échec)
       final res = await http
           .post(
             uri,
             headers: {"Content-Type": "application/json"},
             body: body,
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 40));
 
       if (res.statusCode == 200) {
         final data =
             jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-        return data["reply"]?.toString() ??
-            "Nova n'a pas pu formuler de réponse.";
+        final reply = data["reply"]?.toString();
+        if (reply != null && reply.trim().isNotEmpty) {
+          return reply.trim();
+        }
       }
       return await _askGeminiDirect(
         message: message,
@@ -806,7 +871,7 @@ class ApiService {
         studentProfile: studentProfile,
       );
     } catch (_) {
-      // Si le serveur local est injoignable (ex: PC fermé, utilisateur dehors avec son smartphone)
+      // En cas de coupure réseau ou instance en cours d'initialisation : réponse experte immédiate
       return await _askGeminiDirect(
         message: message,
         history: history,
