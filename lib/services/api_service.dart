@@ -786,6 +786,51 @@ class ApiService {
     }
   }
 
+  static List<Map<String, dynamic>> _formatGeminiContents(
+    List<Map<String, String>> history,
+    String message,
+  ) {
+    final contents = <Map<String, dynamic>>[];
+    for (final h in history) {
+      final role = (h["role"] == "assistant" || h["role"] == "model")
+          ? "model"
+          : "user";
+      final txt = (h["content"] ?? "").trim();
+      if (txt.isEmpty) continue;
+
+      if (contents.isNotEmpty && contents.last["role"] == role) {
+        final lastParts = contents.last["parts"] as List<Map<String, dynamic>>;
+        lastParts.add({"text": txt});
+      } else {
+        contents.add({
+          "role": role,
+          "parts": [
+            {"text": txt}
+          ]
+        });
+      }
+    }
+
+    final cleanMsg = message.trim();
+    if (cleanMsg.isNotEmpty) {
+      if (contents.isEmpty || contents.last["role"] != "user") {
+        contents.add({
+          "role": "user",
+          "parts": [
+            {"text": cleanMsg}
+          ]
+        });
+      } else {
+        final lastParts = contents.last["parts"] as List<Map<String, dynamic>>;
+        final lastTxt = lastParts.map((p) => p["text"]).join(" ");
+        if (lastTxt != cleanMsg) {
+          lastParts.add({"text": cleanMsg});
+        }
+      }
+    }
+    return contents;
+  }
+
   /// Streaming en direct de Google Gemini vers le smartphone (mot par mot, latence ~1s)
   static Stream<String> askNovaStream({
     required String message,
@@ -812,29 +857,12 @@ class ApiService {
         "Contexte de l'élève : Classe : $classe, Moyenne : $moy/20, Lycée : $lycee, Spécialités : $specsStr. "
         "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
         "(Parcoursup, CPGE, BUT, Licences, PASS/LAS Médecine, Écoles d'ingénieurs et de commerce). "
-        "IMPORTANT : Reste concis et percutant. Rédige ta réponse en 2 courts paragraphes maximum (environ 100 à 130 mots). Donne des étapes concrètes sans bavardage superflu.";
+        "Règles impératives :\n"
+        "1. Réponds toujours directement, de façon exhaustive et précise à la question de l'élève. "
+        "Si l'élève demande un classement, un top 10 ou une liste, fournis la liste complète et structurée.\n"
+        "2. Sois concret, bienveillant et réaliste sans bavardage superflu.";
 
-    final contents = <Map<String, dynamic>>[];
-    for (final h in history.take(8)) {
-      final role = (h["role"] == "assistant" || h["role"] == "model")
-          ? "model"
-          : "user";
-      final txt = h["content"] ?? "";
-      if (txt.trim().isNotEmpty) {
-        contents.add({
-          "role": role,
-          "parts": [
-            {"text": txt}
-          ]
-        });
-      }
-    }
-    contents.add({
-      "role": "user",
-      "parts": [
-        {"text": message}
-      ]
-    });
+    final contents = _formatGeminiContents(history, message);
 
     final body = jsonEncode({
       "systemInstruction": {
@@ -845,7 +873,10 @@ class ApiService {
       "contents": contents,
       "generationConfig": {
         "temperature": 0.7,
-        "maxOutputTokens": 800,
+        "maxOutputTokens": 2048,
+        "thinkingConfig": {
+          "thinkingBudget": 0
+        }
       }
     });
 
@@ -925,33 +956,25 @@ class ApiService {
       "gemini-3.8-flash",
       "gemini-3.5-flash",
     ];
+
+    final prof = studentProfile ?? {};
+    final classe = prof["classe_actuelle"] ?? "Lycée";
+    final moy = prof["moyenne_generale"] ?? (prof["bulletin"] is Map ? prof["bulletin"]["moyenne_generale"] : null) ?? "non renseignée";
+    final lycee = prof["lycee_nom"] ?? "non renseigné";
+    final specsList = prof["specialites_choisies"];
+    final specsStr = (specsList is List && specsList.isNotEmpty) ? specsList.join(", ") : "non renseignées";
+
     final sysPrompt =
         "Tu es Nova, le mentor d'orientation officiel pour lycéens. "
+        "Contexte de l'élève : Classe : $classe, Moyenne : $moy/20, Lycée : $lycee, Spécialités : $specsStr. "
         "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
         "(Parcoursup, CPGE, BUT, Licences, PASS/LAS Médecine, Écoles d'ingénieurs et de commerce). "
-        "IMPORTANT : Reste concis et percutant. Rédige ta réponse en 2 courts paragraphes maximum (environ 100 à 130 mots). Donne des étapes concrètes sans bavardage superflu.";
+        "Règles impératives :\n"
+        "1. Réponds toujours directement, de façon exhaustive et précise à la question de l'élève. "
+        "Si l'élève demande un classement, un top 10 ou une liste, fournis la liste complète et structurée.\n"
+        "2. Sois concret, bienveillant et réaliste sans bavardage superflu.";
 
-    final contents = <Map<String, dynamic>>[];
-    for (final h in history) {
-      final role = (h["role"] == "assistant" || h["role"] == "model")
-          ? "model"
-          : "user";
-      final txt = h["content"] ?? "";
-      if (txt.trim().isNotEmpty) {
-        contents.add({
-          "role": role,
-          "parts": [
-            {"text": txt}
-          ]
-        });
-      }
-    }
-    contents.add({
-      "role": "user",
-      "parts": [
-        {"text": message}
-      ]
-    });
+    final contents = _formatGeminiContents(history, message);
 
     final body = jsonEncode({
       "systemInstruction": {
@@ -962,9 +985,47 @@ class ApiService {
       "contents": contents,
       "generationConfig": {
         "temperature": 0.7,
-        "maxOutputTokens": 800,
+        "maxOutputTokens": 2048,
+        "thinkingConfig": {
+          "thinkingBudget": 0
+        }
       }
     });
+
+    for (final m in models) {
+      try {
+        final url = Uri.parse(
+            "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent");
+        final res = await http
+            .post(
+              url,
+              headers: {
+                "Content-Type": "application/json",
+                "X-goog-api-key": _geminiCloudApiKey,
+              },
+              body: body,
+            )
+            .timeout(const Duration(seconds: 15));
+
+        if (res.statusCode == 200) {
+          final data =
+              jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+          final candidates = data["candidates"] as List?;
+          if (candidates != null && candidates.isNotEmpty) {
+            final parts = candidates[0]["content"]?["parts"] as List?;
+            if (parts != null && parts.isNotEmpty) {
+              final text = parts
+                  .map((p) => p["text"]?.toString() ?? "")
+                  .join("\n")
+                  .trim();
+              if (text.isNotEmpty) return text;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+    return _buildNovaLocalFallback(message, studentProfile);
+  }
 
     for (final m in models) {
       try {
