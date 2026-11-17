@@ -8,9 +8,9 @@ from pathlib import Path
 import pypdf
 
 try:
-    from services.ai_engine import query_local_llm
+    from services.ai_engine import query_local_llm, _query_gemini, get_gemini_api_key
 except ImportError:
-    from backend.services.ai_engine import query_local_llm
+    from backend.services.ai_engine import query_local_llm, _query_gemini, get_gemini_api_key
 
 router = APIRouter()
 
@@ -2023,6 +2023,16 @@ def _build_nova_fallback_response(user_msg: str, prof: dict) -> str:
             "Pour construire une trajectoire solide, concentre-toi d'abord sur la régularité de tes notes et l'alignement de tes spécialités. "
             "Quelle est la filière ou le métier qui te motive le plus en ce moment ?"
         )
+
+@router.get("/nova/test_gemini")
+def test_gemini_endpoint():
+    key = get_gemini_api_key()
+    key_preview = f"{key[:8]}...{key[-4:]}" if len(key) > 12 else "trop courte"
+    try:
+        reply = _query_gemini("Dis bonjour en 5 mots", "")
+        return {"success": True, "key_preview": key_preview, "reply": reply}
+    except Exception as e:
+        return {"success": False, "key_preview": key_preview, "error": str(e)}
 
 @router.post("/nova/chat")
 async def nova_chat_endpoint(req: NovaChatRequest):
