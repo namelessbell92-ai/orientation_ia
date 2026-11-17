@@ -1027,41 +1027,6 @@ class ApiService {
     return _buildNovaLocalFallback(message, studentProfile);
   }
 
-    for (final m in models) {
-      try {
-        final url = Uri.parse(
-            "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent");
-        final res = await http
-            .post(
-              url,
-              headers: {
-                "Content-Type": "application/json",
-                "X-goog-api-key": _geminiCloudApiKey,
-              },
-              body: body,
-            )
-            .timeout(const Duration(seconds: 15));
-
-        if (res.statusCode == 200) {
-          final data =
-              jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-          final candidates = data["candidates"] as List?;
-          if (candidates != null && candidates.isNotEmpty) {
-            final parts = candidates[0]["content"]?["parts"] as List?;
-            if (parts != null && parts.isNotEmpty) {
-              final text = parts
-                  .map((p) => p["text"]?.toString() ?? "")
-                  .join("\n")
-                  .trim();
-              if (text.isNotEmpty) return text;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-    return _buildNovaLocalFallback(message, studentProfile);
-  }
-
   /// Envoie un message au mentor IA Nova avec historique et contexte de l'élève
   static Future<String> askNova({
     required String message,
