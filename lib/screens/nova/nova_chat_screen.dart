@@ -795,7 +795,7 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
             );
           }
 
-          final isStillGeneratingThis = _isCurrentConversationGenerating && index == _currentMessages.length - 1;
+          final isStillGeneratingThis = _isCurrentConversationGenerating && idx == _currentMessages.length - 1;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 24),
