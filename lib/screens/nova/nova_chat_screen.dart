@@ -225,7 +225,7 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
 
   Future<void> _pickFile() async {
     try {
-      final res = await FilePicker.platform.pickFiles(
+      final res = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
         withData: true,
@@ -346,7 +346,7 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
     if (currentFileBytes != null && currentFileName != null) {
       // Analyse du bulletin ou document
       try {
-        final analysis = await ApiService.parseBulletin(
+        final analysis = await ApiService.uploadAndParseBulletin(
           fileBytes: currentFileBytes,
           filename: currentFileName,
         );
