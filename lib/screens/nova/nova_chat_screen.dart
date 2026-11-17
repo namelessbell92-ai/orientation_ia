@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../services/api_service.dart';
 import '../../services/progress_service.dart';
 import '../../theme/app_theme.dart';
@@ -20,18 +24,32 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
 
   List<Map<String, dynamic>> _conversations = [];
   String _currentConversationId = "";
-  List<Map<String, String>> _currentMessages = [];
+  List<Map<String, dynamic>> _currentMessages = [];
 
-  // Suivi indépendant des générations par conversation (évite tout croisement)
+  // Suivi indépendant des générations par conversation
   final Set<String> _generatingConversationIds = {};
-  final Set<int> _expandedMessageIndices = {};
   Map<String, dynamic>? _studentProfile;
 
-  static const String _storageKey = "nova_chat_conversations_v1";
+  // Gestion vocale (Speech-to-Text) et Synthèse (TTS)
+  final FlutterTts _flutterTts = FlutterTts();
+  late stt.SpeechToText _speech;
+  bool _speechAvailable = false;
+  bool _isListening = false;
+  bool _isSpeaking = false;
+  String? _currentlySpokenText;
+
+  // Gestion des pièces jointes (fichiers/bulletins)
+  String? _attachedFileName;
+  List<int>? _attachedFileBytes;
+
+  static const String _storageKey = "nova_chat_conversations_v2";
 
   @override
   void initState() {
     super.initState();
+    _speech = stt.SpeechToText();
+    _initSpeech();
+    _initTts();
     _loadConversations();
     _loadStudentContext();
   }
@@ -40,7 +58,62 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
   void dispose() {
     _textController.dispose();
     _scrollController.dispose();
+    _flutterTts.stop();
+    if (_isListening) {
+      _speech.stop();
+    }
     super.dispose();
+  }
+
+  void _initSpeech() async {
+    try {
+      _speechAvailable = await _speech.initialize(
+        onStatus: (val) {
+          if (val == 'done' || val == 'notListening') {
+            if (mounted) setState(() => _isListening = false);
+          }
+        },
+        onError: (_) {
+          if (mounted) setState(() => _isListening = false);
+        },
+      );
+    } catch (_) {
+      _speechAvailable = false;
+    }
+  }
+
+  void _initTts() {
+    _flutterTts.setLanguage("fr-FR");
+    _flutterTts.setSpeechRate(0.52);
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+          _currentlySpokenText = null;
+        });
+      }
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    if (_isSpeaking && _currentlySpokenText == text) {
+      await _flutterTts.stop();
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+          _currentlySpokenText = null;
+        });
+      }
+      return;
+    }
+    await _flutterTts.stop();
+    if (mounted) {
+      setState(() {
+        _isSpeaking = true;
+        _currentlySpokenText = text;
+      });
+    }
+    await _flutterTts.speak(text);
   }
 
   Future<void> _loadStudentContext() async {
@@ -92,13 +165,15 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
       "id": newId,
       "title": "Nouvelle discussion",
       "date": DateTime.now().toIso8601String(),
-      "messages": <Map<String, String>>[],
+      "messages": <Map<String, dynamic>>[],
     };
 
     setState(() {
       _conversations.insert(0, newConv);
       _currentConversationId = newId;
       _currentMessages = [];
+      _attachedFileName = null;
+      _attachedFileBytes = null;
     });
     _saveConversations();
   }
@@ -110,13 +185,15 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
         "id": "conv_${DateTime.now().millisecondsSinceEpoch}",
         "title": "Nouvelle discussion",
         "date": DateTime.now().toIso8601String(),
-        "messages": <Map<String, String>>[],
+        "messages": <Map<String, dynamic>>[],
       },
     );
     setState(() {
       _currentConversationId = found["id"] as String;
       final rawMsgs = (found["messages"] as List?) ?? [];
-      _currentMessages = rawMsgs.map((m) => Map<String, String>.from(m as Map)).toList();
+      _currentMessages = rawMsgs.map((m) => Map<String, dynamic>.from(m as Map)).toList();
+      _attachedFileName = null;
+      _attachedFileBytes = null;
     });
     _scrollToBottom();
   }
@@ -146,22 +223,92 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
     });
   }
 
-  /// Envoi d'un message avec cloisonnement strict par conversation ID
+  Future<void> _pickFile() async {
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+        withData: true,
+      );
+      if (res != null && res.files.isNotEmpty) {
+        final f = res.files.first;
+        setState(() {
+          _attachedFileName = f.name;
+          _attachedFileBytes = f.bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Sélection de fichier : $e")),
+        );
+      }
+    }
+  }
+
+  void _toggleSpeech() async {
+    if (!_isListening) {
+      bool available = _speechAvailable;
+      if (!available) {
+        available = await _speech.initialize(
+          onStatus: (val) {
+            if (val == 'done' || val == 'notListening') {
+              if (mounted) setState(() => _isListening = false);
+            }
+          },
+          onError: (_) {
+            if (mounted) setState(() => _isListening = false);
+          },
+        );
+        _speechAvailable = available;
+      }
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          localeId: 'fr_FR',
+          onResult: (val) {
+            setState(() {
+              _textController.text = val.recognizedWords;
+            });
+          },
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Reconnaissance vocale non disponible sur cet appareil.")),
+          );
+        }
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
+  }
+
   Future<void> _sendMessage([String? prefilledText]) async {
     final text = (prefilledText ?? _textController.text).trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _attachedFileBytes == null) return;
 
-    // Identifiant de la conversation ciblée par cet envoi précis
     final targetConvId = _currentConversationId;
     if (_generatingConversationIds.contains(targetConvId)) return;
 
+    final currentFileName = _attachedFileName;
+    final currentFileBytes = _attachedFileBytes;
+
     if (prefilledText == null) {
       _textController.clear();
+      setState(() {
+        _attachedFileName = null;
+        _attachedFileBytes = null;
+      });
     }
 
-    final userMsg = {"role": "user", "content": text};
+    final userMsg = {
+      "role": "user",
+      "content": text.isNotEmpty ? text : "Analyse du document : $currentFileName",
+      if (currentFileName != null) "attachment": currentFileName,
+    };
 
-    // Trouver la conversation cible dans la liste
     Map<String, dynamic>? targetConv;
     for (final c in _conversations) {
       if (c["id"] == targetConvId) {
@@ -173,64 +320,75 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
 
     final targetMsgList = (targetConv["messages"] as List);
 
-    // Titrage automatique si premier message
     if (targetMsgList.isEmpty || targetConv["title"] == "Nouvelle discussion") {
-      targetConv["title"] = text.length > 32 ? "${text.substring(0, 29)}..." : text;
+      final t = text.isNotEmpty ? text : "Document $currentFileName";
+      targetConv["title"] = t.length > 32 ? "${t.substring(0, 29)}..." : t;
     }
     targetMsgList.add(userMsg);
 
-    // Snapshot de l'historique pour l'API
     final historySnapshot = targetMsgList
-        .map((m) => Map<String, String>.from(m as Map))
+        .map((m) => {
+              "role": m["role"]?.toString() ?? "user",
+              "content": m["content"]?.toString() ?? "",
+            })
         .toList();
 
     setState(() {
       _generatingConversationIds.add(targetConvId);
       if (_currentConversationId == targetConvId) {
-        _currentMessages = List.from(historySnapshot);
+        _currentMessages = List.from(targetMsgList);
       }
     });
     _saveConversations();
     _scrollToBottom();
 
-    // Appel API à Nova
-    final reply = await ApiService.askNova(
-      message: text,
-      history: historySnapshot,
-      studentProfile: _studentProfile,
-    );
+    String reply;
+    if (currentFileBytes != null && currentFileName != null) {
+      // Analyse du bulletin ou document
+      try {
+        final analysis = await ApiService.parseBulletin(
+          fileBytes: currentFileBytes,
+          filename: currentFileName,
+        );
+        if (analysis["success"] == true) {
+          final moy = analysis["moyenne_generale"];
+          final mat = analysis["matieres"] as Map? ?? {};
+          final matStr = mat.entries.map((e) => "${e.key}: ${e.value}/20").take(5).join(", ");
+          reply = "J'ai bien analysé ton document ($currentFileName).\n\n"
+              "• Moyenne détectée : ${moy != null ? '$moy/20' : 'Non précisée'}\n"
+              "• Matières principales : $matStr\n\n"
+              "Comment souhaites-tu exploiter ces notes pour tes vœux ou ton plan d'orientation ?";
+        } else {
+          reply = "J'ai bien reçu ton fichier $currentFileName. Quelles sont les questions précises que tu souhaites me poser dessus ?";
+        }
+      } catch (_) {
+        reply = "Document $currentFileName bien réceptionné. Pose-moi ta question pour que je puisse t'aiguiller !";
+      }
+    } else {
+      reply = await ApiService.askNova(
+        message: text,
+        history: historySnapshot,
+        studentProfile: _studentProfile,
+      );
+    }
 
     if (!mounted) return;
 
     final assistantMsg = {"role": "assistant", "content": reply};
-
-    // Ajout de la réponse STRICTEMENT dans targetConv
     targetMsgList.add(assistantMsg);
     _generatingConversationIds.remove(targetConvId);
     _saveConversations();
 
-    // Mise à jour de l'écran UNIQUEMENT si l'élève est toujours sur cette même conversation !
     if (mounted && _currentConversationId == targetConvId) {
       setState(() {
         _currentMessages = targetMsgList
-            .map((m) => Map<String, String>.from(m as Map))
+            .map((m) => Map<String, dynamic>.from(m as Map))
             .toList();
       });
       _scrollToBottom();
     } else if (mounted) {
-      // S'il est sur une autre conversation, on déclenche un simple setState pour libérer l'indicateur
       setState(() {});
     }
-  }
-
-  String get _currentConversationTitle {
-    for (final c in _conversations) {
-      if (c["id"] == _currentConversationId) {
-        final t = c["title"]?.toString() ?? "";
-        if (t.isNotEmpty) return t;
-      }
-    }
-    return "Nouvelle discussion";
   }
 
   bool get _isCurrentConversationGenerating {
@@ -240,83 +398,48 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         titleSpacing: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.history_rounded, color: AppTheme.textMain),
-            tooltip: "Historique des discussions",
+            icon: const Icon(Icons.menu_rounded, color: Color(0xFF1E293B), size: 24),
+            tooltip: "Menu des conversations",
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: AppTheme.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.psychology_rounded, size: 20, color: Colors.white),
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Icon(Icons.auto_awesome, size: 22, color: Colors.white),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _currentConversationTitle,
-                    style: const TextStyle(
-                      color: AppTheme.textMain,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14.5,
-                      letterSpacing: -0.2,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 1),
-                  Row(
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.accentEmerald,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      const Text(
-                        "Nova • Mentor Orientation",
-                        style: TextStyle(
-                          color: AppTheme.textMuted,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            const SizedBox(width: 8),
+            const Text(
+              "Nova",
+              style: TextStyle(
+                color: Color(0xFF1E293B),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(width: 4),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_comment_outlined, color: AppTheme.primary),
-            tooltip: "Nouvelle discussion",
+            icon: const Icon(Icons.edit_note_rounded, color: Color(0xFF1E293B), size: 26),
+            tooltip: "Nouvelle conversation",
             onPressed: () => _startNewConversation(),
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppTheme.borderColor),
-        ),
       ),
       drawer: _buildDrawer(),
       body: Column(
@@ -324,101 +447,139 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
           Expanded(
             child: _currentMessages.isEmpty ? _buildEmptyState() : _buildMessagesList(),
           ),
-          if (_isCurrentConversationGenerating) _buildTypingIndicator(),
+          if (_isCurrentConversationGenerating) _buildGeneratingIndicator(),
           _buildInputBar(),
         ],
       ),
     );
   }
 
+  /// Barre latérale épurée : nom Nova, bouton Nouvelle conversation et historique
   Widget _buildDrawer() {
     return Drawer(
       backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "Historique Nova",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: const Icon(Icons.auto_awesome, size: 24, color: Colors.white),
                   ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "Nova",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20),
+                    icon: const Icon(Icons.close_rounded, size: 22, color: Color(0xFF64748B)),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                  label: const Text("Nouvelle discussion", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: InkWell(
+                onTap: () {
+                  Navigator.pop(context);
+                  _startNewConversation();
+                },
+                borderRadius: BorderRadius.circular(24),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _startNewConversation();
-                  },
+                  child: const Row(
+                    children: [
+                      Icon(Icons.add_rounded, size: 20, color: Color(0xFF1E293B)),
+                      SizedBox(width: 12),
+                      Text(
+                        "Nouvelle conversation",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: AppTheme.borderColor),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(22, 16, 16, 8),
+              child: Text(
+                "Récent",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF94A3B8),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
             Expanded(
-              child: ListView.separated(
+              child: ListView.builder(
                 itemCount: _conversations.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 itemBuilder: (ctx, idx) {
                   final conv = _conversations[idx];
                   final convId = conv["id"] as String;
                   final isCurrent = convId == _currentConversationId;
                   final title = conv["title"]?.toString() ?? "Discussion";
-                  final isConvGen = _generatingConversationIds.contains(convId);
 
-                  return ListTile(
-                    selected: isCurrent,
-                    selectedTileColor: AppTheme.primarySoft,
-                    leading: isConvGen
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
-                          )
-                        : Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            size: 18,
-                            color: isCurrent ? AppTheme.primary : AppTheme.textMuted,
-                          ),
-                    title: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                        color: isCurrent ? AppTheme.primary : AppTheme.textMain,
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isCurrent ? const Color(0xFFE2E8F0) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      leading: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 17,
+                        color: Color(0xFF64748B),
                       ),
+                      title: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Color(0xFF94A3B8)),
+                        onPressed: () => _deleteConversation(convId),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _selectConversation(convId);
+                      },
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.textMuted),
-                      onPressed: () => _deleteConversation(convId),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _selectConversation(convId);
-                    },
                   );
                 },
               ),
@@ -430,80 +591,79 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
   }
 
   Widget _buildEmptyState() {
-    final suggestions = [
-      "Comment progresser de 2 points en maths d'ici le prochain trimestre ?",
-      "Quelles sont les prépas scientifiques les plus adaptées à mes notes ?",
-      "Comment valoriser mes projets personnels dans mon dossier Parcoursup ?",
-      "Quels débouchés réels après un BUT Informatique vs une Licence ?",
-    ];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.primarySoft,
-                shape: BoxShape.circle,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Icon(Icons.auto_awesome, size: 48, color: Colors.white),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              "Bonjour",
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+                letterSpacing: -0.5,
               ),
-              child: const Icon(Icons.psychology_outlined, size: 40, color: AppTheme.primary),
             ),
-          ),
-          const SizedBox(height: 14),
-          const Center(
-            child: Text(
-              "Bonjour, je suis Nova.",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain),
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Center(
-            child: Text(
-              "Ton mentor dédié pour décrypter ton dossier, optimiser tes choix et réussir tes objectifs d'orientation.",
+            const SizedBox(height: 6),
+            const Text(
+              "Par quoi commençons-nous aujourd'hui ?",
+              style: TextStyle(
+                fontSize: 15,
+                color: Color(0xFF64748B),
+              ),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.35),
             ),
+            const SizedBox(height: 32),
+            _buildSuggestionCard("Quelles sont les prépas les plus adaptées à mes notes ?"),
+            _buildSuggestionCard("Comment optimiser ma stratégie de vœux Parcoursup ?"),
+            _buildSuggestionCard("Conseils pour faire décoller ma moyenne en sciences"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionCard(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: () => _sendMessage(text),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          const SizedBox(height: 26),
-          const Text(
-            "Suggestions de départ :",
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textMain),
-          ),
-          const SizedBox(height: 10),
-          ...suggestions.map(
-            (s) => Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: InkWell(
-                onTap: () => _sendMessage(s),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.borderColor),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppTheme.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          s,
-                          style: const TextStyle(fontSize: 12.5, color: AppTheme.textMain, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ],
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF334155),
                   ),
                 ),
               ),
-            ),
+              const Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF94A3B8)),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -511,171 +671,285 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
   Widget _buildMessagesList() {
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       itemCount: _currentMessages.length,
       itemBuilder: (ctx, idx) {
         final msg = _currentMessages[idx];
         final isUser = msg["role"] == "user";
-        final content = msg["content"] ?? "";
+        final content = msg["content"]?.toString() ?? "";
+        final attachment = msg["attachment"]?.toString();
 
-        return Align(
-          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            decoration: BoxDecoration(
-              color: isUser ? AppTheme.primary : Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(14),
-                topRight: const Radius.circular(14),
-                bottomLeft: Radius.circular(isUser ? 14 : 3),
-                bottomRight: Radius.circular(isUser ? 3 : 14),
+        if (isUser) {
+          // Bulle utilisateur : GRISE (comme demandé)
+          return Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 18),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9), // Gris doux épuré
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(4),
+                ),
               ),
-              border: Border.all(
-                color: isUser ? AppTheme.primary : AppTheme.borderColor,
-                width: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (attachment != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.attach_file_rounded, size: 14, color: Color(0xFF2563EB)),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              attachment,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Text(
+                    content,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      height: 1.45,
+                      color: Color(0xFF1E293B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              boxShadow: isUser ? null : AppTheme.softShadow,
             ),
+          );
+        } else {
+          // Réponse de l'IA (Nova) : PAS DE BULLE (style Gemini pur)
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Builder(
-                  builder: (_) {
-                    final isLong = !isUser && content.length > 280;
-                    final isExpanded = _expandedMessageIndices.contains(idx);
-                    final displayText = (isLong && !isExpanded)
-                        ? "${content.substring(0, 240)}..."
-                        : content;
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayText,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            height: 1.4,
-                            color: isUser ? Colors.white : AppTheme.textMain,
-                            fontWeight: isUser ? FontWeight.w500 : FontWeight.normal,
+                Row(
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ).createShader(bounds),
+                      child: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Nova",
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: SelectableText(
+                    content,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      height: 1.6,
+                      color: Color(0xFF1E293B),
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, size: 17, color: Color(0xFF94A3B8)),
+                      tooltip: "Copier la réponse",
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: content));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Réponse copiée dans le presse-papier"),
+                            duration: Duration(seconds: 2),
                           ),
-                        ),
-                        if (isLong)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  if (isExpanded) {
-                                    _expandedMessageIndices.remove(idx);
-                                  } else {
-                                    _expandedMessageIndices.add(idx);
-                                  }
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(6),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    isExpanded ? "Réduire" : "Lire plus",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: isExpanded ? AppTheme.textMuted : AppTheme.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    isExpanded
-                                        ? Icons.keyboard_arrow_up_rounded
-                                        : Icons.keyboard_arrow_down_rounded,
-                                    size: 16,
-                                    color: isExpanded ? AppTheme.textMuted : AppTheme.primary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        (_isSpeaking && _currentlySpokenText == content)
+                            ? Icons.stop_circle_rounded
+                            : Icons.volume_up_outlined,
+                        size: 19,
+                        color: (_isSpeaking && _currentlySpokenText == content)
+                            ? const Color(0xFF2563EB)
+                            : const Color(0xFF94A3B8),
+                      ),
+                      tooltip: "Écouter la réponse",
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => _speak(content),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-        );
+          );
+        }
       },
     );
   }
 
-  Widget _buildTypingIndicator() {
+  Widget _buildGeneratingIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       alignment: Alignment.centerLeft,
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppTheme.primarySoft,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(Icons.psychology_outlined, size: 14, color: AppTheme.primary),
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+            ).createShader(bounds),
+            child: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
           ),
           const SizedBox(width: 8),
           const Text(
-            "Nova formule sa réponse...",
-            style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+            "Nova réfléchit...",
+            style: TextStyle(
+              fontSize: 12.5,
+              color: Color(0xFF94A3B8),
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),
     );
   }
 
+  /// Barre de saisie style Gemini : bouton +, champ texte, micro, bouton d'envoi
   Widget _buildInputBar() {
+    final hasText = _textController.text.trim().isNotEmpty || _attachedFileBytes != null;
+
     return Container(
       padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom > 0 ? MediaQuery.of(context).padding.bottom : 8,
+        left: 14,
+        right: 14,
+        top: 6,
+        bottom: MediaQuery.of(context).padding.bottom > 0 ? MediaQuery.of(context).padding.bottom + 4 : 10,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppTheme.borderColor)),
-      ),
-      child: Row(
+      color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              minLines: 1,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: "Pose ta question à Nova...",
-                hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(22),
-                  borderSide: const BorderSide(color: AppTheme.borderColor),
-                ),
-                filled: true,
-                fillColor: AppTheme.cardBgElevated,
+          if (_attachedFileName != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
               ),
-              onSubmitted: (_) => _sendMessage(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.attach_file_rounded, size: 16, color: Color(0xFF2563EB)),
+                  const SizedBox(width: 6),
+                  Text(
+                    _attachedFileName!,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF)),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _attachedFileName = null;
+                        _attachedFileBytes = null;
+                      });
+                    },
+                    child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9), // Capsule grise claire Gemini
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_rounded, size: 22, color: Color(0xFF475569)),
+                  tooltip: "Ajouter un fichier (bulletin ou PDF)",
+                  onPressed: _pickFile,
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    minLines: 1,
+                    maxLines: 4,
+                    style: const TextStyle(fontSize: 14.5, color: Color(0xFF1E293B)),
+                    decoration: const InputDecoration(
+                      hintText: "Demander à Nova...",
+                      hintStyle: TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                    size: 22,
+                    color: _isListening ? Colors.red : const Color(0xFF475569),
+                  ),
+                  tooltip: "Dicter à la voix",
+                  onPressed: _toggleSpeech,
+                ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.arrow_upward_rounded,
+                      size: 20,
+                      color: hasText ? Colors.white : const Color(0xFF94A3B8),
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: hasText ? const Color(0xFF2563EB) : Colors.transparent,
+                    ),
+                    onPressed: hasText ? () => _sendMessage() : null,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            style: IconButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.arrow_upward_rounded, size: 20),
-            onPressed: () => _sendMessage(),
+          const SizedBox(height: 6),
+          const Text(
+            "Nova est un mentor d'orientation et peut faire des erreurs. Vérifie les informations officielles.",
+            style: TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8)),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
