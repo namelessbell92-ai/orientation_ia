@@ -290,14 +290,17 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
+      const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
       for (final m in models) {
         try {
           final url = Uri.parse(
-              "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent?key=$_geminiCloudApiKey");
+              "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent");
           final res = await http.post(
             url,
-            headers: {"Content-Type": "application/json"},
+            headers: {
+              "Content-Type": "application/json",
+              "X-goog-api-key": _geminiCloudApiKey,
+            },
             body: body,
           ).timeout(const Duration(seconds: 25));
 
@@ -545,14 +548,17 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
+      const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
       for (final m in models) {
         try {
           final url = Uri.parse(
-              "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent?key=$_geminiCloudApiKey");
+              "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent");
           final res = await http.post(
             url,
-            headers: {"Content-Type": "application/json"},
+            headers: {
+              "Content-Type": "application/json",
+              "X-goog-api-key": _geminiCloudApiKey,
+            },
             body: body,
           ).timeout(const Duration(seconds: 25));
 
@@ -700,7 +706,7 @@ class ApiService {
   }
 
   static const String _geminiCloudApiKey =
-      "AQ.Ab8RN6KjXpmknedkOcQVKguc6OxFuB9t7QK8M5oQoh3YFynnvw";
+      String.fromEnvironment("GEMINI_API_KEY", defaultValue: "");
 
   /// Réponses expertes directes et immédiates pour Nova (secours autonome 100% hors-ligne)
   static String _buildNovaLocalFallback(
@@ -773,7 +779,7 @@ class ApiService {
     List<Map<String, String>> history = const [],
     Map<String, dynamic>? studentProfile,
   }) async {
-    const models = ["gemini-2.5-flash", "gemini-1.5-flash"];
+    const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
     final sysPrompt =
         "Tu es Nova, le mentor d'orientation officiel pour lycéens. "
         "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
@@ -818,11 +824,14 @@ class ApiService {
     for (final m in models) {
       try {
         final url = Uri.parse(
-            "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent?key=$_geminiCloudApiKey");
+            "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent");
         final res = await http
             .post(
               url,
-              headers: {"Content-Type": "application/json"},
+              headers: {
+                "Content-Type": "application/json",
+                "X-goog-api-key": _geminiCloudApiKey,
+              },
               body: body,
             )
             .timeout(const Duration(seconds: 15));

@@ -76,14 +76,18 @@ def _get_preferred_model() -> str:
     return "qwen2.5:3b"
 
 def _query_gemini(prompt: str, system_prompt: str = "") -> str:
-    """Appel direct à l'API Google Gemini Cloud (2.5 Flash / 1.5 Flash).
-    Compatible Windows et Linux (Render Docker).
+    """Appel direct à l'API Google Gemini Cloud (gemini-flash-latest / 2.5 Flash).
+    Compatible Windows et Linux (Render Docker) avec en-tête X-goog-api-key officiel.
     """
     api_key = get_gemini_api_key()
     if not api_key:
         raise ValueError("Clé GEMINI_API_KEY non définie.")
 
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+    models_to_try = [
+        "gemini-flash-latest",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash",
+    ]
 
     payload_dict = {
         "contents": [
@@ -103,13 +107,18 @@ def _query_gemini(prompt: str, system_prompt: str = "") -> str:
             "parts": [{"text": system_prompt}]
         }
 
+    headers = {
+        "Content-Type": "application/json",
+        "X-goog-api-key": api_key,
+    }
+
     for model_name in models_to_try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         try:
             res = requests.post(
                 url,
                 json=payload_dict,
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 timeout=25
             )
             if res.status_code == 200:
@@ -122,7 +131,7 @@ def _query_gemini(prompt: str, system_prompt: str = "") -> str:
                         if text_parts:
                             return "\n".join(text_parts).strip()
             else:
-                _safe_print(f"[Gemini API] Erreur {res.status_code}: {res.text[:120]}")
+                _safe_print(f"[Gemini API] Erreur {res.status_code} sur {model_name}: {res.text[:120]}")
         except Exception as e:
             _safe_print(f"[Gemini API] Exception sur {model_name}: {e}")
             continue
