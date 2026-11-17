@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../utils/pdf_downloader.dart';
@@ -290,7 +291,13 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+      const models = [
+        "gemini-3-flash-preview",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.5-flash",
+      ];
       for (final m in models) {
         try {
           final url = Uri.parse(
@@ -548,7 +555,13 @@ class ApiService {
         }
       });
 
-      const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+      const models = [
+        "gemini-3-flash-preview",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-3.5-flash",
+      ];
       for (final m in models) {
         try {
           final url = Uri.parse(
@@ -773,13 +786,145 @@ class ApiService {
     }
   }
 
+  /// Streaming en direct de Google Gemini vers le smartphone (mot par mot, latence ~1s)
+  static Stream<String> askNovaStream({
+    required String message,
+    List<Map<String, String>> history = const [],
+    Map<String, dynamic>? studentProfile,
+  }) async* {
+    const models = [
+      "gemini-3-flash-preview",
+      "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
+      "gemini-3.8-flash",
+      "gemini-3.5-flash",
+    ];
+
+    final prof = studentProfile ?? {};
+    final classe = prof["classe_actuelle"] ?? "Lycée";
+    final moy = prof["moyenne_generale"] ?? (prof["bulletin"] is Map ? prof["bulletin"]["moyenne_generale"] : null) ?? "non renseignée";
+    final lycee = prof["lycee_nom"] ?? "non renseigné";
+    final specsList = prof["specialites_choisies"];
+    final specsStr = (specsList is List && specsList.isNotEmpty) ? specsList.join(", ") : "non renseignées";
+
+    final sysPrompt =
+        "Tu es Nova, le mentor d'orientation officiel pour lycéens. "
+        "Contexte de l'élève : Classe : $classe, Moyenne : $moy/20, Lycée : $lycee, Spécialités : $specsStr. "
+        "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
+        "(Parcoursup, CPGE, BUT, Licences, PASS/LAS Médecine, Écoles d'ingénieurs et de commerce). "
+        "IMPORTANT : Reste concis et percutant. Rédige ta réponse en 2 courts paragraphes maximum (environ 100 à 130 mots). Donne des étapes concrètes sans bavardage superflu.";
+
+    final contents = <Map<String, dynamic>>[];
+    for (final h in history.take(8)) {
+      final role = (h["role"] == "assistant" || h["role"] == "model")
+          ? "model"
+          : "user";
+      final txt = h["content"] ?? "";
+      if (txt.trim().isNotEmpty) {
+        contents.add({
+          "role": role,
+          "parts": [
+            {"text": txt}
+          ]
+        });
+      }
+    }
+    contents.add({
+      "role": "user",
+      "parts": [
+        {"text": message}
+      ]
+    });
+
+    final body = jsonEncode({
+      "systemInstruction": {
+        "parts": [
+          {"text": sysPrompt}
+        ]
+      },
+      "contents": contents,
+      "generationConfig": {
+        "temperature": 0.7,
+        "maxOutputTokens": 800,
+      }
+    });
+
+    bool hasEmitted = false;
+    final client = HttpClient();
+    client.connectionTimeout = const Duration(seconds: 4);
+
+    try {
+      for (final m in models) {
+        try {
+          final uri = Uri.parse(
+              "https://generativelanguage.googleapis.com/v1beta/models/$m:streamGenerateContent?alt=sse");
+          final req = await client.postUrl(uri);
+          req.headers.set("Content-Type", "application/json");
+          req.headers.set("X-goog-api-key", _geminiCloudApiKey);
+          req.write(body);
+
+          final res = await req.close().timeout(const Duration(seconds: 8));
+          if (res.statusCode == 200) {
+            final lineStream = res
+                .transform(utf8.decoder)
+                .transform(const LineSplitter());
+
+            await for (final line in lineStream) {
+              if (line.startsWith("data: ")) {
+                final raw = line.substring(6).trim();
+                if (raw.isNotEmpty) {
+                  try {
+                    final data = jsonDecode(raw) as Map<String, dynamic>;
+                    final candidates = data["candidates"] as List?;
+                    if (candidates != null && candidates.isNotEmpty) {
+                      final parts = candidates[0]["content"]?["parts"] as List?;
+                      if (parts != null && parts.isNotEmpty) {
+                        for (final p in parts) {
+                          final chunk = p["text"]?.toString() ?? "";
+                          if (chunk.isNotEmpty) {
+                            hasEmitted = true;
+                            yield chunk;
+                          }
+                        }
+                      }
+                    }
+                  } catch (_) {}
+                }
+              }
+            }
+            if (hasEmitted) {
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+    } finally {
+      client.close();
+    }
+
+    if (!hasEmitted) {
+      final fallback = _buildNovaLocalFallback(message, studentProfile);
+      final words = fallback.split(" ");
+      for (int i = 0; i < words.length; i++) {
+        yield (i == 0 ? "" : " ") + words[i];
+        await Future.delayed(const Duration(milliseconds: 25));
+      }
+    }
+  }
+
   /// Appel direct à Google Gemini Cloud depuis le smartphone (100% autonome sans PC)
   static Future<String> _askGeminiDirect({
     required String message,
     List<Map<String, String>> history = const [],
     Map<String, dynamic>? studentProfile,
   }) async {
-    const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
+    const models = [
+      "gemini-3-flash-preview",
+      "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
+      "gemini-3.8-flash",
+      "gemini-3.5-flash",
+    ];
     final sysPrompt =
         "Tu es Nova, le mentor d'orientation officiel pour lycéens. "
         "Tu es bienveillant, direct, stratégique et expert des filières post-bac "
@@ -862,6 +1007,19 @@ class ApiService {
     List<Map<String, String>> history = const [],
     Map<String, dynamic>? studentProfile,
   }) async {
+    // 1. Priorité absolue : Google Gemini Cloud direct (haute vitesse 1 à 2s)
+    try {
+      final geminiReply = await _askGeminiDirect(
+        message: message,
+        history: history,
+        studentProfile: studentProfile,
+      );
+      if (geminiReply.trim().isNotEmpty) {
+        return geminiReply.trim();
+      }
+    } catch (_) {}
+
+    // 2. Secours Render Cloud
     try {
       final base = await getBaseUrl();
       final uri = Uri.parse("$base/nova/chat");
@@ -870,14 +1028,13 @@ class ApiService {
         "conversation_history": history,
         "student_profile": studentProfile,
       });
-      // Délai adapté au réveil à froid de Render (cold-start 20-30s sans échec)
       final res = await http
           .post(
             uri,
             headers: {"Content-Type": "application/json"},
             body: body,
           )
-          .timeout(const Duration(seconds: 40));
+          .timeout(const Duration(seconds: 10));
 
       if (res.statusCode == 200) {
         final data =
@@ -887,19 +1044,9 @@ class ApiService {
           return reply.trim();
         }
       }
-      return await _askGeminiDirect(
-        message: message,
-        history: history,
-        studentProfile: studentProfile,
-      );
-    } catch (_) {
-      // En cas de coupure réseau ou instance en cours d'initialisation : réponse experte immédiate
-      return await _askGeminiDirect(
-        message: message,
-        history: history,
-        studentProfile: studentProfile,
-      );
-    }
+    } catch (_) {}
+
+    return _buildNovaLocalFallback(message, studentProfile);
   }
 
   /// Recherche un lycée français par nom, commune, code postal ou département dans la table officielle des 4 783 lycées (Open Data)

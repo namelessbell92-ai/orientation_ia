@@ -342,52 +342,84 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
     _saveConversations();
     _scrollToBottom();
 
-    String reply;
-    if (currentFileBytes != null && currentFileName != null) {
-      // Analyse du bulletin ou document
-      try {
-        final analysis = await ApiService.uploadAndParseBulletin(
-          fileBytes: currentFileBytes,
-          filename: currentFileName,
-        );
-        if (analysis["success"] == true) {
-          final moy = analysis["moyenne_generale"];
-          final mat = analysis["matieres"] as Map? ?? {};
-          final matStr = mat.entries.map((e) => "${e.key}: ${e.value}/20").take(5).join(", ");
-          reply = "J'ai bien analysé ton document ($currentFileName).\n\n"
-              "• Moyenne détectée : ${moy != null ? '$moy/20' : 'Non précisée'}\n"
-              "• Matières principales : $matStr\n\n"
-              "Comment souhaites-tu exploiter ces notes pour tes vœux ou ton plan d'orientation ?";
-        } else {
-          reply = "J'ai bien reçu ton fichier $currentFileName. Quelles sont les questions précises que tu souhaites me poser dessus ?";
-        }
-      } catch (_) {
-        reply = "Document $currentFileName bien réceptionné. Pose-moi ta question pour que je puisse t'aiguiller !";
-      }
-    } else {
-      reply = await ApiService.askNova(
-        message: text,
-        history: historySnapshot,
-        studentProfile: _studentProfile,
-      );
-    }
-
-    if (!mounted) return;
-
-    final assistantMsg = {"role": "assistant", "content": reply};
+    final assistantMsg = <String, dynamic>{"role": "assistant", "content": ""};
     targetMsgList.add(assistantMsg);
-    _generatingConversationIds.remove(targetConvId);
-    _saveConversations();
 
-    if (mounted && _currentConversationId == targetConvId) {
-      setState(() {
-        _currentMessages = targetMsgList
-            .map((m) => Map<String, dynamic>.from(m as Map))
-            .toList();
-      });
-      _scrollToBottom();
-    } else if (mounted) {
-      setState(() {});
+    setState(() {
+      _generatingConversationIds.add(targetConvId);
+      if (_currentConversationId == targetConvId) {
+        _currentMessages = List.from(targetMsgList);
+      }
+    });
+    _saveConversations();
+    _scrollToBottom();
+
+    try {
+      if (currentFileBytes != null && currentFileName != null) {
+        // Analyse du bulletin ou document
+        String reply;
+        try {
+          final analysis = await ApiService.uploadAndParseBulletin(
+            fileBytes: currentFileBytes,
+            filename: currentFileName,
+          );
+          if (analysis["success"] == true) {
+            final moy = analysis["moyenne_generale"];
+            final mat = analysis["matieres"] as Map? ?? {};
+            final matStr = mat.entries.map((e) => "${e.key}: ${e.value}/20").take(5).join(", ");
+            reply = "J'ai bien analysé ton document ($currentFileName).\n\n"
+                "• Moyenne détectée : ${moy != null ? '$moy/20' : 'Non précisée'}\n"
+                "• Matières principales : $matStr\n\n"
+                "Comment souhaites-tu exploiter ces notes pour tes vœux ou ton plan d'orientation ?";
+          } else {
+            reply = "J'ai bien reçu ton fichier $currentFileName. Quelles sont les questions précises que tu souhaites me poser dessus ?";
+          }
+        } catch (_) {
+          reply = "Document $currentFileName bien réceptionné. Pose-moi ta question pour que je puisse t'aiguiller !";
+        }
+        final words = reply.split(" ");
+        for (int i = 0; i < words.length; i++) {
+          if (!mounted) break;
+          assistantMsg["content"] = (assistantMsg["content"] as String) + (i == 0 ? "" : " ") + words[i];
+          if (_currentConversationId == targetConvId) {
+            setState(() {
+              _currentMessages = List.from(targetMsgList);
+            });
+            _scrollToBottom();
+          }
+          await Future.delayed(const Duration(milliseconds: 25));
+        }
+      } else {
+        await for (final chunk in ApiService.askNovaStream(
+          message: text,
+          history: historySnapshot,
+          studentProfile: _studentProfile,
+        )) {
+          if (!mounted) break;
+          assistantMsg["content"] = (assistantMsg["content"] as String) + chunk;
+          if (_currentConversationId == targetConvId) {
+            setState(() {
+              _currentMessages = List.from(targetMsgList);
+            });
+            _scrollToBottom();
+          }
+        }
+      }
+    } catch (_) {
+      if ((assistantMsg["content"] as String).isEmpty) {
+        assistantMsg["content"] = "Je prends note de ta question. Peux-tu me préciser tes matières favorites ou tes idées d'orientation ?";
+      }
+    } finally {
+      _generatingConversationIds.remove(targetConvId);
+      _saveConversations();
+      if (mounted) {
+        setState(() {
+          if (_currentConversationId == targetConvId) {
+            _currentMessages = List.from(targetMsgList);
+          }
+        });
+        _scrollToBottom();
+      }
     }
   }
 
@@ -447,7 +479,6 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
           Expanded(
             child: _currentMessages.isEmpty ? _buildEmptyState() : _buildMessagesList(),
           ),
-          if (_isCurrentConversationGenerating) _buildGeneratingIndicator(),
           _buildInputBar(),
         ],
       ),
@@ -737,6 +768,35 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
           );
         } else {
           // Réponse de l'IA (Nova) : PAS DE BULLE (style Gemini pur)
+          if (content.isEmpty) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              child: Row(
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Nova réfléchit...",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF94A3B8),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final isStillGeneratingThis = _isCurrentConversationGenerating && index == _currentMessages.length - 1;
+
           return Container(
             margin: const EdgeInsets.only(bottom: 24),
             child: Column(
@@ -776,39 +836,41 @@ class _NovaChatScreenState extends State<NovaChatScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.copy_rounded, size: 17, color: Color(0xFF94A3B8)),
-                      tooltip: "Copier la réponse",
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: content));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Réponse copiée dans le presse-papier"),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        (_isSpeaking && _currentlySpokenText == content)
-                            ? Icons.stop_circle_rounded
-                            : Icons.volume_up_outlined,
-                        size: 19,
-                        color: (_isSpeaking && _currentlySpokenText == content)
-                            ? const Color(0xFF2563EB)
-                            : const Color(0xFF94A3B8),
+                if (!isStillGeneratingThis) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.copy_rounded, size: 17, color: Color(0xFF94A3B8)),
+                        tooltip: "Copier la réponse",
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: content));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Réponse copiée dans le presse-papier"),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                       ),
-                      tooltip: "Écouter la réponse",
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => _speak(content),
-                    ),
-                  ],
-                ),
+                      IconButton(
+                        icon: Icon(
+                          (_isSpeaking && _currentlySpokenText == content)
+                              ? Icons.stop_circle_rounded
+                              : Icons.volume_up_outlined,
+                          size: 19,
+                          color: (_isSpeaking && _currentlySpokenText == content)
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFF94A3B8),
+                        ),
+                        tooltip: "Écouter la réponse",
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _speak(content),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           );
