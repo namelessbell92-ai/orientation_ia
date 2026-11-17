@@ -76,14 +76,14 @@ def _get_preferred_model() -> str:
     return "qwen2.5:3b"
 
 def _query_gemini(prompt: str, system_prompt: str = "") -> str:
-    """Appel direct à l'API Google Gemini Cloud (3.5 Flash-Lite / 3.5 Flash).
-    Utilise le binaire natif curl.exe sous Windows pour contourner les limitations de proxy réseau.
+    """Appel direct à l'API Google Gemini Cloud (2.5 Flash / 1.5 Flash).
+    Compatible Windows et Linux (Render Docker).
     """
     api_key = get_gemini_api_key()
     if not api_key:
         raise ValueError("Clé GEMINI_API_KEY non définie.")
 
-    models_to_try = ["gemini-3.5-flash"]
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
 
     payload_dict = {
         "contents": [
@@ -103,20 +103,17 @@ def _query_gemini(prompt: str, system_prompt: str = "") -> str:
             "parts": [{"text": system_prompt}]
         }
 
-    payload_json = json.dumps(payload_dict)
-
     for model_name in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-        cmd = [
-            "curl.exe", "--noproxy", "*", "-s", "-m", "20", "-X", "POST",
-            url,
-            "-H", "Content-Type: application/json",
-            "-d", payload_json
-        ]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
-            if res.returncode == 0 and res.stdout:
-                data = json.loads(res.stdout)
+            res = requests.post(
+                url,
+                json=payload_dict,
+                headers={"Content-Type": "application/json"},
+                timeout=25
+            )
+            if res.status_code == 200:
+                data = res.json()
                 candidates = data.get("candidates", [])
                 if candidates:
                     parts = candidates[0].get("content", {}).get("parts", [])
@@ -124,10 +121,8 @@ def _query_gemini(prompt: str, system_prompt: str = "") -> str:
                         text_parts = [p.get("text", "") for p in parts if "text" in p]
                         if text_parts:
                             return "\n".join(text_parts).strip()
-                error_info = data.get("error", {})
-                if error_info:
-                    _safe_print(f"[Gemini API] Erreur {error_info.get('code')}: {error_info.get('message', '')[:120]}")
-                    continue
+            else:
+                _safe_print(f"[Gemini API] Erreur {res.status_code}: {res.text[:120]}")
         except Exception as e:
             _safe_print(f"[Gemini API] Exception sur {model_name}: {e}")
             continue

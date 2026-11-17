@@ -1969,33 +1969,57 @@ def _build_nova_fallback_response(user_msg: str, prof: dict) -> str:
     classe = prof.get("classe_actuelle") or "au lycée"
     moy = prof.get("moyenne_generale") or prof.get("bulletin", {}).get("moyenne_generale")
 
-    if any(k in msg_low for k in ["math", "calcul", "notes", "progresser", "remédiation"]):
+    # Salutations & Politesse
+    if any(k in msg_low for k in ["bonjour", "salut", "hello", "coucou", "bonsoir", "hey"]):
+        return (
+            "Bonjour ! Je suis Nova, ton mentor dédié à l'orientation et à la réussite scolaire.\n\n"
+            "Comment puis-je t'aider aujourd'hui ? Pose-moi une question sur le choix de tes spécialités, "
+            "les filières post-bac (prépas, BUT, universités, écoles), ou la stratégie de ton dossier Parcoursup."
+        )
+    elif any(k in msg_low for k in ["qui es-tu", "tu es qui", "c'est quoi nova", "présente-toi", "presente-toi"]):
+        return (
+            "Je suis Nova, ton coach d'orientation stratégique. Mon rôle est de décrypter ton dossier, "
+            "d'étalonner tes résultats avec le niveau réel de ton lycée (via les indicateurs officiels IVAL) "
+            "et de t'aider à construire une trajectoire ambitieuse et sécurisée pour le post-bac."
+        )
+    elif any(k in msg_low for k in ["math", "calcul", "note", "progresser", "remédiation", "remediation"]):
         return (
             "Pour faire grimper ta moyenne en maths, la clé n'est pas de refaire 50 fois les mêmes exercices faciles, "
-            "mais de cibler les automatismes de calcul et les démonstrations de cours. "
+            "mais de cibler les automatismes de calcul et les démonstrations de cours.\n\n"
             "Consacre 3 sessions de 35 minutes par semaine exclusivement aux exercices types du bac ou de concours. "
             "Rédige chaque étape au propre comme si tu étais le jour de l'épreuve."
         )
-    elif any(k in msg_low for k in ["parcoursup", "dossier", "commission", "selection", "sélectif"]):
+    elif any(k in msg_low for k in ["parcoursup", "dossier", "commission", "selection", "sélecti"]):
         return (
             "Pour les commissions Parcoursup, deux éléments pèsent lourdement en dehors des notes : "
-            "la progression entre le 1er et le 2e trimestre, et l'adéquation de tes spécialités avec la filière visée. "
+            "la progression entre le 1er et le 2e trimestre, et l'adéquation de tes spécialités avec la filière visée.\n\n"
             "Si ton lycée applique une notation exigeante, n'hésite pas à le faire valoir via la fiche Avenir et ta lettre de motivation."
         )
-    elif any(k in msg_low for k in ["prépa", "mpsi", "pcsi", "ecg", "concours"]):
+    elif any(k in msg_low for k in ["prépa", "prepa", "mpsi", "pcsi", "ecg", "bcpst", "concours"]):
         return (
             "Viser une classe préparatoire est une excellente ambition qui structure ta méthode pour toute ta carrière. "
-            "Les prépas recherchent avant tout de la régularité et une capacité à surmonter les moments de doute. "
+            "Les prépas recherchent avant tout de la régularité et une capacité à surmonter les moments de doute.\n\n"
             "Assure-toi de consolider tes bases dès maintenant et prévois toujours un plan B sécurisé (BUT ou licence sélective)."
         )
-    elif any(k in msg_low for k in ["lycee", "henri", "louis", "ival"]):
+    elif any(k in msg_low for k in ["lycee", "lycée", "henri", "louis", "ival"]):
         return (
             "Le lycée d'origine est en effet scruté par les meilleures formations : un 14 dans un établissement réputé pour sa sévérité "
             "vaut souvent un 16 ou 17 dans un lycée moyen. C'est précisément pour cela que l'application étalonne ton dossier via les indicateurs officiels IVAL."
         )
+    elif any(k in msg_low for k in ["medecine", "médecine", "pass", "las", "santé", "sante"]):
+        return (
+            "L'accès aux études de santé (PASS ou LAS) exige une immense capacité de travail en autonomie et une mémorisation rapide. "
+            "En Première et Terminale, privilégie les spécialités scientifiques (SVT, Physique-Chimie, Maths).\n\n"
+            "En PASS, le rythme est très soutenu dès la première semaine : travailler la régularité dès maintenant est ton meilleur atout."
+        )
+    elif any(k in msg_low for k in ["ingénieur", "ingenieur", "école", "ecole"]):
+        return (
+            "Pour intégrer une école d'ingénieurs, plusieurs voies s'offrent à toi : les prépas classiques (CPGE), les écoles post-bac avec prépa intégrée (INSA, UT, Polytech via Geipi), ou les admissions parallèles après un BUT.\n\n"
+            "Le choix dépend de ton profil : si tu as besoin de concret, le BUT ou la prépa intégrée sont d'excellentes options."
+        )
     else:
         return (
-            f"Je prends bien en compte ta question par rapport à ta situation {classe}. "
+            f"Je prends bien en compte ta question par rapport à ta situation {classe}.\n\n"
             "Pour construire une trajectoire solide, concentre-toi d'abord sur la régularité de tes notes et l'alignement de tes spécialités. "
             "Quelle est la filière ou le métier qui te motive le plus en ce moment ?"
         )

@@ -711,7 +711,20 @@ class ApiService {
     final prof = studentProfile ?? {};
     final classe = prof["classe_actuelle"] ?? "au lycée";
 
-    if (msgLow.contains("math") ||
+    if (msgLow.contains("bonjour") ||
+        msgLow.contains("salut") ||
+        msgLow.contains("hello") ||
+        msgLow.contains("coucou") ||
+        msgLow.contains("bonsoir") ||
+        msgLow.contains("hey")) {
+      return "Bonjour ! Je suis Nova, ton mentor dédié à l'orientation et à la réussite scolaire.\n\nComment puis-je t'aider aujourd'hui ? Pose-moi une question sur le choix de tes spécialités, les filières post-bac (prépas, BUT, universités, écoles), ou la stratégie de ton dossier Parcoursup.";
+    } else if (msgLow.contains("qui es-tu") ||
+        msgLow.contains("tu es qui") ||
+        msgLow.contains("c'est quoi nova") ||
+        msgLow.contains("présente-toi") ||
+        msgLow.contains("presente-toi")) {
+      return "Je suis Nova, ton coach d'orientation stratégique. Mon rôle est de décrypter ton dossier, d'étalonner tes résultats avec le niveau réel de ton lycée (via les indicateurs officiels IVAL) et de t'aider à construire une trajectoire ambitieuse et sécurisée pour le post-bac.";
+    } else if (msgLow.contains("math") ||
         msgLow.contains("calcul") ||
         msgLow.contains("note") ||
         msgLow.contains("progresser") ||
