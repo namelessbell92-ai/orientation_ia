@@ -122,6 +122,7 @@ def _query_gemini(prompt: str, system_prompt: str = "") -> str:
         "X-goog-api-key": api_key,
     }
 
+    errors = []
     for model_name in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         try:
@@ -141,12 +142,15 @@ def _query_gemini(prompt: str, system_prompt: str = "") -> str:
                         if text_parts:
                             return "\n".join(text_parts).strip()
             else:
+                msg = f"HTTP {res.status_code} : {res.text[:140]}"
+                errors.append(f"{model_name} ({msg})")
                 _safe_print(f"[Gemini API] Erreur {res.status_code} sur {model_name}: {res.text[:120]}")
         except Exception as e:
+            errors.append(f"{model_name} ({type(e).__name__}: {e})")
             _safe_print(f"[Gemini API] Exception sur {model_name}: {e}")
             continue
 
-    raise RuntimeError("Tous les modèles Gemini Cloud ont échoué.")
+    raise RuntimeError(f"Tous les modèles ont échoué : {' | '.join(errors)}")
 
 def query_local_llm(prompt: str, system_prompt: str = "") -> str:
     api_key = get_gemini_api_key()
